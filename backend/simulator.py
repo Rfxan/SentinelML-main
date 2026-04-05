@@ -1,19 +1,34 @@
 import random
+import numpy as np
 
 class Simulator:
+    def __init__(self):
+        self.continuous_indices = [0, 4, 5, 9, 10, 11, 12, 13, 14, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+
     def generate_normal(self):
-        return [random.uniform(0.1, 0.4) for _ in range(41)]
-        
-    def generate_evasion(self):
-        features = [random.uniform(0.4, 0.6) for _ in range(41)]
-        features[10] = 2.0  # Spike one feature to trigger evasion above threshold 3.5 z-score
+        features = [float(np.random.random() * 0.1) for _ in range(41)]
+        features[4] = random.uniform(100, 500) # src_bytes
+        features[22] = random.uniform(1, 10) # count
         return features
-        
-    def generate_poison(self):
+
+    def generate_evasion(self):
         features = self.generate_normal()
-        wrong_label = 1
-        return features, wrong_label
-        
+        # High activity + anomalous bytes
+        features[22] = 250.0 
+        features[4] = 9999.0
+        # Add perturbations
+        for idx in self.continuous_indices:
+            if random.random() > 0.5:
+                features[idx] += random.choice([-1, 1]) * random.uniform(0.1, 0.3)
+        return features
+
+    def generate_poison(self):
+        # Malicious features but target normal label
+        features = [0.0] * 41
+        features[22] = 500.0 # High count
+        features[24] = 1.0 # High serror_rate
+        return features, 0 # features, flipped_label
+
     def generate_blitz(self):
         strategies = ["normal", "evasion", "poison"]
         choice = random.choice(strategies)

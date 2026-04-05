@@ -1,29 +1,28 @@
 import numpy as np
 
 class Defender:
-    def __init__(self, threshold=3.5):
-        self.threshold = threshold
-        # Baseline mean and std for 41 features (synthetic 0-1 uniform distributed: mean ~0.5, std ~0.288)
-        self.baseline_mean = np.full(41, 0.5)
-        self.baseline_std = np.full(41, 0.288)
+    def __init__(self, train_stats=None):
+        self.stats = train_stats
 
     def detect_evasion(self, features):
-        features = np.array(features)
-        z_scores = np.abs((features - self.baseline_mean) / self.baseline_std)
-        max_z = np.max(z_scores)
-        is_evasion = float(max_z) > self.threshold
+        if not self.stats:
+            return False, 0.0
         
-        score = self.compute_evasion_score(features)
-        return is_evasion, score
+        f = np.array(features)
+        means = np.array(self.stats['mean'])
+        stds = np.array(self.stats['std'])
+        
+        # Avoid division by zero
+        stds[stds == 0] = 1e-6
+        
+        z_scores = np.abs((f - means) / stds)
+        max_z = np.max(z_scores)
+        
+        is_evasion = float(max_z) > 3.5
+        risk_score = min(100, max(0, (max_z - 2.0) * 12.5))
+        
+        return is_evasion, round(risk_score, 2)
 
-    def detect_poisoning(self, features, label, model_prediction, confidence):
-        is_poisoning = bool(confidence > 0.9 and label != model_prediction)
-        reason = "High confidence mismatch" if is_poisoning else ""
-        return is_poisoning, reason
-
-    def compute_evasion_score(self, features):
-        features = np.array(features)
-        z_scores = np.abs((features - self.baseline_mean) / self.baseline_std)
-        avg_z = np.mean(z_scores)
-        score = min(avg_z * 33.3, 100.0)
-        return float(score)
+    def detect_poisoning(self, features, label, pred_label, confidence):
+        is_poisoning = bool(confidence > 0.9 and label != pred_label)
+        return is_poisoning
