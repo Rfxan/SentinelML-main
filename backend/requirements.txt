@@ -3,6 +3,8 @@ uvicorn
 scikit-learn
 numpy
 pandas
+joblib
 python-multipart
+pydantic
 httpx
-python-dotenv
+requests

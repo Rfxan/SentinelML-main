@@ -23,6 +23,11 @@ wheels/
 backend/venv/
 backend/.venv/
 backend/model.pkl
+backend/scaler.pkl
+backend/train_stats.pkl
+backend/data/
+*.pkl
+*.txt
 
 # Node / React
 node_modules/

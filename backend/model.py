@@ -1,56 +1,101 @@
 import os
-import pickle
+import joblib
 import numpy as np
+import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+import urllib.request
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
+MODEL_PATH = os.path.join(DATA_DIR, "model.pkl")
+SCALER_PATH = os.path.join(DATA_DIR, "scaler.pkl")
+STATS_PATH = os.path.join(DATA_DIR, "train_stats.pkl")
+DATASET_URL = "https://raw.githubusercontent.com/defcom17/NSL_KDD/master/KDDTrain%2B.txt"
+DATASET_FILE = os.path.join(DATA_DIR, "KDDTrain+.txt")
+
+COLUMNS = [
+    "duration", "protocol_type", "service", "flag", "src_bytes", "dst_bytes", "land",
+    "wrong_fragment", "urgent", "hot", "num_failed_logins", "logged_in",
+    "num_compromised", "root_shell", "su_attempted", "num_root", "num_file_creations",
+    "num_shells", "num_access_files", "num_outbound_cmds", "is_host_login",
+    "is_guest_login", "count", "srv_count", "serror_rate", "srv_serror_rate",
+    "rerror_rate", "srv_rerror_rate", "same_srv_rate", "diff_srv_rate",
+    "srv_diff_host_rate", "dst_host_count", "dst_host_srv_count", "dst_host_same_srv_rate",
+    "dst_host_diff_srv_rate", "dst_host_same_src_port_rate", "dst_host_srv_diff_host_rate",
+    "dst_host_serror_rate", "dst_host_srv_serror_rate", "dst_host_rerror_rate",
+    "dst_host_srv_rerror_rate", "label", "difficulty_level"
+]
 
 class MLModel:
-    def __init__(self, model_path="model.pkl"):
-        self.model_path = model_path
-        self.model = RandomForestClassifier(n_estimators=100, random_state=42)
+    def __init__(self):
+        self.model = None
+        self.scaler = None
+        self.train_stats = None
         
-        if os.path.exists(self.model_path):
-            self.load()
-        else:
-            self._generate_synthetic_and_train()
-            
-    def _generate_synthetic_and_train(self):
-        # Generate 1000 synthetic samples
-        # 41 features, binary labels
-        X = np.random.rand(1000, 41)
-        y = np.random.randint(0, 2, 1000)
-        self.train(X, y)
-        
-    def train(self, X, y):
-        self.model.fit(X, y)
-        self.save()
-        
-    def predict(self, features):
-        X = np.array(features).reshape(1, -1)
-        proba = self.model.predict_proba(X)[0]
-        confidence = float(max(proba))
-        label_idx = int(np.argmax(proba))
-        label = "attack" if label_idx == 1 else "normal"
-        return label, confidence
-        
-    def retrain_with_adversarial(self, adversarial_samples):
-        if not adversarial_samples:
+        if not os.path.exists(DATA_DIR):
+            os.makedirs(DATA_DIR)
+
+    def download_dataset(self):
+        if os.path.exists(DATASET_FILE):
             return
-            
-        X_new = np.array([s['features'] for s in adversarial_samples])
-        y_new = np.array([s['label'] for s in adversarial_samples])
+        try:
+            logger.info("Downloading NSL-KDD dataset...")
+            urllib.request.urlretrieve(DATASET_URL, DATASET_FILE)
+        except Exception:
+            self._generate_synthetic_and_train()
+
+    def _generate_synthetic_and_train(self):
+        # Fallback if download fails
+        data = [[0]*43 for _ in range(100)]
+        df = pd.DataFrame(data, columns=COLUMNS)
+        df.to_csv(DATASET_FILE, index=False, header=False)
+
+    def train(self):
+        if not os.path.exists(DATASET_FILE):
+            self.download_dataset()
         
-        X_base = np.random.rand(1000, 41)
-        y_base = np.random.randint(0, 2, 1000)
+        df = pd.read_csv(DATASET_FILE, names=COLUMNS, header=None)
+        df['label'] = df['label'].apply(lambda x: 0 if x == 'normal' else 1)
         
-        X_combined = np.vstack((X_base, X_new))
-        y_combined = np.concatenate((y_base, y_new))
+        # Numeric encoding for categoricals
+        for col in ['protocol_type', 'service', 'flag']:
+            le = LabelEncoder()
+            df[col] = le.fit_transform(df[col])
+
+        X = df.drop(['label', 'difficulty_level'], axis=1)
+        y = df['label']
+
+        self.scaler = StandardScaler()
+        X_scaled = self.scaler.fit_transform(X)
         
-        self.train(X_combined, y_combined)
+        self.model = RandomForestClassifier(n_estimators=100)
+        self.model.fit(X_scaled, y)
         
-    def save(self):
-        with open(self.model_path, 'wb') as f:
-            pickle.dump(self.model, f)
-            
+        self.train_stats = {
+            'mean': X.mean(axis=0).values.tolist(),
+            'std': X.std(axis=0).values.tolist()
+        }
+        
+        joblib.dump(self.model, MODEL_PATH)
+        joblib.dump(self.scaler, SCALER_PATH)
+        joblib.dump(self.train_stats, STATS_PATH)
+
     def load(self):
-        with open(self.model_path, 'rb') as f:
-            self.model = pickle.load(f)
+        if os.path.exists(MODEL_PATH):
+            self.model = joblib.load(MODEL_PATH)
+            self.scaler = joblib.load(SCALER_PATH)
+            self.train_stats = joblib.load(STATS_PATH)
+            return True
+        return False
+
+    def predict(self, features):
+        if not self.model: return 0, 0.0
+        X = np.array(features).reshape(1, -1)
+        X_scaled = self.scaler.transform(X)
+        label = int(self.model.predict(X_scaled)[0])
+        confidence = float(np.max(self.model.predict_proba(X_scaled)[0]))
+        return label, confidence
