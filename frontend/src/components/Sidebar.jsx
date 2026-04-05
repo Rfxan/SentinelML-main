@@ -18,7 +18,7 @@ const navItems = [
   { name: 'Attack', icon: Target },
   { name: 'Block List', icon: Ban },
   { name: 'Health', icon: HeartPulse },
-  { name: 'Extraction Radar', icon: Eye },
+  { name: 'Extraction', icon: Eye },
 ];
 
 const Sidebar = ({ activeItem, setActiveItem }) => {

@@ -75,7 +75,7 @@ function MainApp() {
                   <AttackChart />
                </div>
             </div>
-          ) : activeItem === 'Extraction Radar' ? (
+          ) : activeItem === 'Extraction' ? (
             <div className="flex flex-col gap-6 w-full max-w-7xl mx-auto h-full">
               <ExtractionRadar />
             </div>
