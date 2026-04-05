@@ -3,7 +3,8 @@ import StatCard from './StatCard';
 import LogsPanel from './LogsPanel';
 import ThreatTable from './ThreatTable';
 import { Activity, ShieldAlert, Wifi } from 'lucide-react';
-import ThreatMeter from './ThreatMeter';
+import ThreatScoreCard from './ThreatScoreCard';
+import AccuracyDriftChart from './AccuracyDriftChart';
 import AttackChart from './AttackChart';
 
 const Dashboard = ({ data }) => {
@@ -51,7 +52,10 @@ const Dashboard = ({ data }) => {
   return (
     <div className="flex flex-col gap-6 w-full max-w-7xl mx-auto">
       {/* HERO COMPONENT */}
-      <ThreatMeter />
+      <ThreatScoreCard />
+
+      {/* ACCURACY TRENDS */}
+      <AccuracyDriftChart />
 
       {/* ATTACK TRENDS CHART */}
       <AttackChart />

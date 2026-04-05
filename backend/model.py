@@ -2,10 +2,13 @@ import os
 import joblib
 import numpy as np
 import pandas as pd
-from xgboost import XGBClassifier
-from sklearn.preprocessing import StandardScaler, LabelEncoder
+import time
 import urllib.request
 import logging
+from xgboost import XGBClassifier
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, f1_score
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -35,6 +38,9 @@ class MLModel:
         self.model = None
         self.scaler = None
         self.train_stats = None
+        self.accuracy = 0.0
+        self.f1 = 0.0
+        self.model_history = []
         
         if not os.path.exists(DATA_DIR):
             os.makedirs(DATA_DIR)
@@ -54,12 +60,36 @@ class MLModel:
         df = pd.DataFrame(data, columns=COLUMNS)
         df.to_csv(DATASET_FILE, index=False, header=False)
 
+    def _map_label(self, x):
+        x = str(x).lower().strip()
+        if x == 'normal': return 0
+        dos_types = ['back','land','neptune','pod','smurf','teardrop','apache2','udpstorm','processtable','mailbomb','worm']
+        probe_types = ['ipsweep','nmap','portsweep','satan','mscan','saint']
+        r2l_types = ['ftp_write','guess_passwd','imap','multihop','phf','spy','warezclient','warezmaster','sendmail','named','snmpgetattack','snmpguess','xlock','xsnoop','httptunnel']
+        u2r_types = ['buffer_overflow','loadmodule','perl','rootkit','sqlattack','xterm','ps']
+        if any(t in x for t in dos_types): return 1
+        if any(t in x for t in probe_types): return 2
+        if any(t in x for t in r2l_types): return 3
+        if any(t in x for t in u2r_types): return 4
+        return 1  # fallback: treat unknown as dos
+
+    def _augment_adversarial(self, X, y):
+        attack_mask = (y != 0)
+        if not any(attack_mask):
+            return X, y
+        X_adv = X[attack_mask].copy()
+        stds = np.array(self.train_stats['std']) if (self.train_stats and 'std' in self.train_stats) else np.ones(X.shape[1])
+        noise = np.random.normal(0, 0.1, X_adv.shape)
+        X_adv = X_adv + noise * stds
+        y_adv = y[attack_mask].copy() if hasattr(y, 'copy') else y.values[attack_mask].copy()
+        return np.vstack([X, X_adv]), np.concatenate([y, y_adv])
+
     def train(self, new_samples=None):
         if not os.path.exists(DATASET_FILE):
             self.download_dataset()
         
         df = pd.read_csv(DATASET_FILE, names=COLUMNS, header=None)
-        df['label'] = df['label'].apply(lambda x: 0 if x == 'normal' else 1)
+        df['label'] = df['label'].apply(self._map_label)
         
         # Numeric encoding for categoricals
         for col in ['protocol_type', 'service', 'flag']:
@@ -78,23 +108,46 @@ class MLModel:
             except Exception as e:
                 logger.error(f"Failed to append new samples: {e}")
 
+        # Split before scaling and training
+        X_train_raw, X_test_raw, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+        self.train_stats = {
+            'mean': X_train_raw.mean(axis=0).values.tolist(),
+            'std': X_train_raw.std(axis=0).values.tolist()
+        }
+
         self.scaler = StandardScaler()
-        X_scaled = self.scaler.fit_transform(X)
+        X_train_scaled = self.scaler.fit_transform(X_train_raw)
+        X_test_scaled = self.scaler.transform(X_test_raw)
+        
+        # Adversarial Augmentation
+        X_train_final, y_train_final = self._augment_adversarial(X_train_scaled, y_train)
         
         self.model = XGBClassifier(
             n_estimators=100,
             max_depth=6,
             learning_rate=0.1,
-            verbosity=1,
-            use_label_encoder=False,
-            eval_metric='logloss'
+            objective='multi:softprob',
+            num_class=5,
+            eval_metric='mlogloss'
         )
-        self.model.fit(X_scaled, y)
+        self.model.fit(X_train_final, y_train_final)
         
-        self.train_stats = {
-            'mean': X.mean(axis=0).values.tolist(),
-            'std': X.std(axis=0).values.tolist()
-        }
+        # Compute metrics
+        y_pred = self.model.predict(X_test_scaled)
+        self.accuracy = float(accuracy_score(y_test, y_pred))
+        self.f1 = float(f1_score(y_test, y_pred, average='weighted'))
+        
+        self.train_stats['accuracy'] = self.accuracy
+        self.train_stats['f1'] = self.f1
+        self.train_stats['model_history'] = self.model_history
+        
+        self.model_history.append({
+            'ts': time.time(),
+            'accuracy': self.accuracy,
+            'f1': self.f1,
+            'event': 'train'
+        })
         
         joblib.dump(self.model, MODEL_PATH)
         joblib.dump(self.scaler, SCALER_PATH)
@@ -105,6 +158,9 @@ class MLModel:
             self.model = joblib.load(MODEL_PATH)
             self.scaler = joblib.load(SCALER_PATH)
             self.train_stats = joblib.load(STATS_PATH)
+            self.accuracy = self.train_stats.get('accuracy', 0.0)
+            self.f1 = self.train_stats.get('f1', 0.0)
+            self.model_history = self.train_stats.get('model_history', [])
             return True
         return False
 
@@ -112,6 +168,10 @@ class MLModel:
         if not self.model: return 0, 0.0
         X = np.array(features).reshape(1, -1)
         X_scaled = self.scaler.transform(X)
-        label = int(self.model.predict(X_scaled)[0])
-        confidence = float(np.max(self.model.predict_proba(X_scaled)[0]))
+        proba = self.model.predict_proba(X_scaled)[0]
+        label = int(np.argmax(proba))
+        confidence = float(np.max(proba))
         return label, confidence
+
+    def is_attack(self, label):
+        return label != 0

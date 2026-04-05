@@ -1,8 +1,21 @@
 import numpy as np
+from sklearn.ensemble import IsolationForest
 
 class Defender:
-    def __init__(self, train_stats=None):
+    def __init__(self, train_stats=None, X_train=None):
         self.stats = train_stats
+        self.iso_forest = None
+        self.q01 = None
+        self.q99 = None
+        
+        if X_train is not None:
+            self._fit_iso_forest(X_train)
+            self.q01 = np.percentile(X_train, 1, axis=0)
+            self.q99 = np.percentile(X_train, 99, axis=0)
+
+    def _fit_iso_forest(self, X_train):
+        self.iso_forest = IsolationForest(contamination=0.05, random_state=42)
+        self.iso_forest.fit(X_train)
 
     def detect_evasion(self, features):
         if not self.stats:
@@ -11,19 +24,33 @@ class Defender:
         f = np.array(features)
         means = np.array(self.stats['mean'])
         stds = np.array(self.stats['std'])
-        
-        # Avoid division by zero
         stds[stds == 0] = 1e-6
         
         z_scores = np.abs((f - means) / stds)
-        max_z = np.max(z_scores)
+        max_z = float(np.max(z_scores))
         
-        is_evasion = float(max_z) > 3.5
+        # Feature squeezing: compare prediction on original vs clipped input
+        squeeze_signal = False
+        if self.q01 is not None:
+            f_squeezed = np.clip(f, self.q01, self.q99)
+            f_squeezed = np.round(f_squeezed, decimals=2)
+            squeeze_delta = float(np.mean(np.abs(f - f_squeezed)))
+            squeeze_signal = squeeze_delta > 0.5
+        
+        is_evasion = max_z > 3.5 or squeeze_signal
         risk_score = min(100, max(0, (max_z - 2.0) * 12.5))
         
         return is_evasion, round(risk_score, 2)
 
     def detect_poisoning(self, features, label, pred_label, confidence):
-        # Relaxed confidence threshold for live demonstration purposes to ensure poisoning flags trigger
-        is_poisoning = bool(confidence > 0.5 and label != pred_label)
-        return is_poisoning
+        f = np.array(features).reshape(1, -1)
+        
+        # IsolationForest outlier check
+        outlier = False
+        if self.iso_forest is not None:
+            outlier = self.iso_forest.predict(f)[0] == -1
+        
+        # Confidence mismatch check (label flipping attempt)
+        confidence_flip = bool(confidence > 0.5 and label != 0 and pred_label == 0)
+        
+        return bool(outlier or confidence_flip)

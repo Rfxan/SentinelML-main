@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
 import AlertHistory from './components/AlertHistory';
 import TrafficFeed from './components/TrafficFeed';
+import ExtractionRadar from './components/ExtractionRadar';
 import { default as EmptyState } from './components/EmptyState';
 import { AlertProvider, useAlerts } from './hooks/useAlerts';
 import FlashOverlay from './components/FlashOverlay';
@@ -73,6 +74,10 @@ function MainApp() {
                <div className="h-[500px]">
                   <AttackChart />
                </div>
+            </div>
+          ) : activeItem === 'Extraction Radar' ? (
+            <div className="flex flex-col gap-6 w-full max-w-7xl mx-auto h-full">
+              <ExtractionRadar />
             </div>
           ) : (
             <div className="flex-1 glass-card flex items-center justify-center min-h-[60vh] mt-4">

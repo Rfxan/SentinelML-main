@@ -22,6 +22,7 @@ wheels/
 *.egg
 backend/venv/
 backend/.venv/
+backend/.env
 backend/model.pkl
 backend/scaler.pkl
 backend/train_stats.pkl
