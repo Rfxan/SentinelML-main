@@ -2,7 +2,7 @@ import os
 import joblib
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
+from xgboost import XGBClassifier
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 import urllib.request
 import logging
@@ -81,7 +81,14 @@ class MLModel:
         self.scaler = StandardScaler()
         X_scaled = self.scaler.fit_transform(X)
         
-        self.model = RandomForestClassifier(n_estimators=100)
+        self.model = XGBClassifier(
+            n_estimators=100,
+            max_depth=6,
+            learning_rate=0.1,
+            verbosity=1,
+            use_label_encoder=False,
+            eval_metric='logloss'
+        )
         self.model.fit(X_scaled, y)
         
         self.train_stats = {
