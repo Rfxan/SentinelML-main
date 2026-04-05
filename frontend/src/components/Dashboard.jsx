@@ -3,6 +3,8 @@ import StatCard from './StatCard';
 import LogsPanel from './LogsPanel';
 import ThreatTable from './ThreatTable';
 import { Activity, ShieldAlert, Wifi } from 'lucide-react';
+import ThreatMeter from './ThreatMeter';
+import AttackChart from './AttackChart';
 
 const Dashboard = ({ data }) => {
   const { trafficFeed, modelStats, blockedIPs } = data;
@@ -48,30 +50,11 @@ const Dashboard = ({ data }) => {
 
   return (
     <div className="flex flex-col gap-6 w-full max-w-7xl mx-auto">
-      {/* 3 STAT CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard 
-          title="Active Threats" 
-          value={activeThreats} 
-          icon={ShieldAlert} 
-          colorClass="text-slate-800 dark:text-zinc-300" 
-          gradientClass="bg-slate-300 dark:bg-zinc-600" 
-        />
-        <StatCard 
-          title="Blocked IPs" 
-          value={blockedCount} 
-          icon={Wifi} 
-          colorClass="text-slate-800 dark:text-zinc-300" 
-          gradientClass="bg-slate-400 dark:bg-zinc-700" 
-        />
-        <StatCard 
-          title="Requests Logged" 
-          value={requestsLogged} 
-          icon={Activity} 
-          colorClass="text-slate-900 dark:text-white" 
-          gradientClass="bg-slate-200 dark:bg-zinc-500" 
-        />
-      </div>
+      {/* HERO COMPONENT */}
+      <ThreatMeter />
+
+      {/* ATTACK TRENDS CHART */}
+      <AttackChart />
 
       {/* PANELS */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 w-full mt-2">

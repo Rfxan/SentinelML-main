@@ -8,6 +8,7 @@ import { default as EmptyState } from './components/EmptyState';
 import { AlertProvider, useAlerts } from './hooks/useAlerts';
 import FlashOverlay from './components/FlashOverlay';
 import ToastContainer from './components/ToastContainer';
+import AttackChart from './components/AttackChart';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -67,6 +68,12 @@ function MainApp() {
             <TrafficFeed />
           ) : activeItem === 'Alerts' ? (
             <AlertHistory />
+          ) : activeItem === 'Attack' ? (
+            <div className="flex flex-col gap-6 w-full max-w-7xl mx-auto h-full">
+               <div className="h-[500px]">
+                  <AttackChart />
+               </div>
+            </div>
           ) : (
             <div className="flex-1 glass-card flex items-center justify-center min-h-[60vh] mt-4">
               <EmptyState 

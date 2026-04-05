@@ -54,7 +54,7 @@ class MLModel:
         df = pd.DataFrame(data, columns=COLUMNS)
         df.to_csv(DATASET_FILE, index=False, header=False)
 
-    def train(self):
+    def train(self, new_samples=None):
         if not os.path.exists(DATASET_FILE):
             self.download_dataset()
         
@@ -68,6 +68,15 @@ class MLModel:
 
         X = df.drop(['label', 'difficulty_level'], axis=1)
         y = df['label']
+
+        if new_samples:
+            try:
+                new_X = pd.DataFrame([s['features'] for s in new_samples], columns=X.columns)
+                new_y = pd.Series([s['label'] for s in new_samples])
+                X = pd.concat([X, new_X], ignore_index=True)
+                y = pd.concat([y, new_y], ignore_index=True)
+            except Exception as e:
+                logger.error(f"Failed to append new samples: {e}")
 
         self.scaler = StandardScaler()
         X_scaled = self.scaler.fit_transform(X)

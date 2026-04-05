@@ -1,5 +1,8 @@
 import time
 import asyncio
+import os
+import uuid
+import numpy as np
 from typing import List, Optional
 from fastapi import FastAPI, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,12 +22,9 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="SentinelML Backend")
 
-<<<<<<< HEAD
 # CORS
-=======
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173,http://127.0.0.1:3000").split(",")
 
->>>>>>> 087c814 (Frontend UI update)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -40,10 +40,13 @@ simulator = Simulator()
 
 # Traffic Log
 traffic_feed = deque(maxlen=500)
+accepted_training_samples = []
 stats = {
     "total_predictions": 0,
     "attacks_caught": 0,
     "adversarial_attempts": 0,
+    "evasion_caught": 0,
+    "poisoning_caught": 0,
     "start_time": time.time()
 }
 
@@ -99,7 +102,7 @@ async def predict(req: PredictRequest):
         raise HTTPException(status_code=400, detail="Must provide 41 features.")
 
     if blocker.is_blocked(req.ip):
-        return {"blocked": True, "error": "IP is blocked"}
+        raise HTTPException(status_code=403, detail="IP is blocked")
 
     # 1. Defender: Evasion Check
     is_evasion, evasion_risk = defender.detect_evasion(req.features)
@@ -117,11 +120,12 @@ async def predict(req: PredictRequest):
     if is_evasion: event_type = "evasion"
     
     event = {
+        "id": str(uuid.uuid4()),
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
         "ip": req.ip,
         "type": event_type,
         "confidence": confidence,
-        "evasion_risk": evasion_risk,
+        "evasion_score": evasion_risk,
         "status": "blocked" if is_blocked else "allowed",
         "geo": geo
     }
@@ -129,12 +133,14 @@ async def predict(req: PredictRequest):
 
     stats["total_predictions"] += 1
     if pred_label == 1: stats["attacks_caught"] += 1
-    if is_evasion: stats["adversarial_attempts"] += 1
+    if is_evasion: 
+        stats["adversarial_attempts"] += 1
+        stats["evasion_caught"] += 1
 
     return {
         "label": pred_label,
         "confidence": confidence,
-        "evasion_risk": evasion_risk,
+        "evasion_score": evasion_risk,
         "blocked": is_blocked,
         "geo": geo
     }
@@ -142,7 +148,7 @@ async def predict(req: PredictRequest):
 @app.post("/train")
 async def train_endpoint(req: TrainRequest):
     if blocker.is_blocked(req.ip):
-        return {"blocked": True, "error": "IP is blocked"}
+        raise HTTPException(status_code=403, detail="IP is blocked")
 
     # Preliminary Model Check
     pred_label, confidence = model.predict(req.features)
@@ -155,6 +161,7 @@ async def train_endpoint(req: TrainRequest):
     
     geo = await get_geo_info(req.ip)
     event = {
+        "id": str(uuid.uuid4()),
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
         "ip": req.ip,
         "type": "poison" if is_poisoning else "train",
@@ -166,10 +173,29 @@ async def train_endpoint(req: TrainRequest):
 
     if is_poisoning:
         stats["adversarial_attempts"] += 1
+        stats["poisoning_caught"] += 1
         return {"status": "rejected", "is_poisoning": True, "blocked": is_blocked}
 
-    # Model: (Triggered explicitly or via threshold in production)
+    # Model: Accept training sample
+    accepted_training_samples.append({'features': req.features, 'label': req.label})
     return {"status": "accepted", "is_poisoning": False, "blocked": False}
+
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
+
+@app.post("/reset")
+async def reset_system():
+    traffic_feed.clear()
+    accepted_training_samples.clear()
+    blocker.blocked_ips.clear()
+    blocker.strikes.clear()
+    stats["total_predictions"] = 0
+    stats["attacks_caught"] = 0
+    stats["adversarial_attempts"] = 0
+    stats["evasion_caught"] = 0
+    stats["poisoning_caught"] = 0
+    return {"status": "reset"}
 
 @app.get("/traffic-feed")
 async def get_traffic_feed():
@@ -197,13 +223,16 @@ async def get_model_stats():
         "total_predictions": stats["total_predictions"],
         "attacks_caught": stats["attacks_caught"],
         "adversarial_attempts": stats["adversarial_attempts"],
+        "evasion_caught": stats["evasion_caught"],
+        "poisoning_caught": stats["poisoning_caught"],
         "uptime": round(uptime / 3600, 2)
     }
 
 @app.post("/retrain")
 async def retrain():
     logger.info("Manual retrain triggered.")
-    model.train()
+    model.train(new_samples=accepted_training_samples)
+    accepted_training_samples.clear()
     # Update defender with new stats
     global defender
     defender = Defender(train_stats=model.train_stats)
@@ -212,8 +241,10 @@ async def retrain():
 @app.post("/simulate")
 async def simulate(req: SimulateRequest):
     count = req.count or 1
+    # Use the same IP for blitz to allow rate limiting/blocking to trigger
+    blitz_ip = f"185.122.4.{np.random.randint(1, 255)}"
     for _ in range(count):
-        ip = f"185.122.4.{np.random.randint(1, 255)}"
+        ip = blitz_ip if req.mode == "blitz" else f"185.122.4.{np.random.randint(1, 255)}"
         if req.mode == "normal":
             f = simulator.generate_normal()
             await predict(PredictRequest(features=f, ip=ip))
@@ -231,5 +262,3 @@ async def simulate(req: SimulateRequest):
                 await predict(PredictRequest(features=f, ip=ip))
         await asyncio.sleep(0.05)
     return {"status": "simulated", "count": count}
-
-import numpy as np # For random IP

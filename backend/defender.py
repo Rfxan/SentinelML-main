@@ -24,5 +24,6 @@ class Defender:
         return is_evasion, round(risk_score, 2)
 
     def detect_poisoning(self, features, label, pred_label, confidence):
-        is_poisoning = bool(confidence > 0.9 and label != pred_label)
+        # Relaxed confidence threshold for live demonstration purposes to ensure poisoning flags trigger
+        is_poisoning = bool(confidence > 0.5 and label != pred_label)
         return is_poisoning
