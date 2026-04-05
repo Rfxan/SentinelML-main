@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { X, Info, Shield, BarChart2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
@@ -38,7 +39,13 @@ const SHAPPanel = ({ event, onClose }) => {
   }, [event]);
 
   return (
-    <div className="fixed top-0 right-0 h-full w-[450px] bg-zinc-950/95 border-l border-white/5 backdrop-blur-3xl z-[100] shadow-[-20px_0_40px_rgba(0,0,0,0.4)] animate-in slide-in-from-right duration-500 ease-out flex flex-col">
+    <motion.div 
+      initial={{ x: '100%', opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      exit={{ x: '100%', opacity: 0 }}
+      transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+      className="fixed top-0 right-0 h-full w-[450px] bg-zinc-950/95 border-l border-white/5 backdrop-blur-3xl z-[130] shadow-[-20px_0_40px_rgba(0,0,0,0.4)] flex flex-col"
+    >
       <div className="p-6 border-b border-white/5 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg">
@@ -147,7 +154,7 @@ const SHAPPanel = ({ event, onClose }) => {
           </p>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

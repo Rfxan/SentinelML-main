@@ -94,11 +94,11 @@ const TrafficFeed = () => {
                </tr>
              </thead>
              <tbody>
-               <AnimatePresence>
-                 {displayFeed.map((row) => (
-                   <TrafficRow key={`${row.time}-${row.ip}`} row={row} onClick={setSelectedRow} />
-                 ))}
-               </AnimatePresence>
+                <AnimatePresence>
+                  {displayFeed.map((row) => (
+                    <TrafficRow key={row.id || `${row.timestamp}-${row.ip}-${Math.random()}`} row={row} onClick={setSelectedRow} />
+                  ))}
+                </AnimatePresence>
              </tbody>
           </table>
           {displayFeed.length === 0 && <div className="p-10 text-center text-slate-500 dark:text-zinc-500 text-sm font-medium">No matching traffic logs found.</div>}
