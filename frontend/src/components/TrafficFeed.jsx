@@ -1,71 +1,107 @@
-import React from 'react';
-import { Activity, ShieldAlert, Cpu, AlertTriangle } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { AnimatePresence } from 'framer-motion';
+import { useTrafficPolling } from '../hooks/useTrafficPolling';
+import LiveIndicator from './LiveIndicator';
+import TrafficRow from './TrafficRow';
+import TrafficDrawer from './TrafficDrawer';
+import { Activity, Pause, Play, Search, Filter } from 'lucide-react';
 
-const TrafficFeed = ({ feed }) => {
-  const getRowColor = (type) => {
-    switch (type.toLowerCase()) {
-      case 'normal': return 'bg-emerald-900/20 shadow-[inset_4px_0_0_0_rgba(16,185,129,1)] hover:bg-emerald-900/30';
-      case 'attack': return 'bg-rose-900/20 shadow-[inset_4px_0_0_0_rgba(244,63,94,1)] hover:bg-rose-900/30';
-      case 'evasion': return 'bg-amber-900/20 shadow-[inset_4px_0_0_0_rgba(245,158,11,1)] hover:bg-amber-900/30';
-      case 'poisoning': return 'bg-purple-900/20 shadow-[inset_4px_0_0_0_rgba(168,85,247,1)] hover:bg-purple-900/30';
-      case 'training': return 'bg-blue-900/20 shadow-[inset_4px_0_0_0_rgba(59,130,246,1)] hover:bg-blue-900/30';
-      default: return 'bg-slate-800';
+const TrafficFeed = () => {
+  const { trafficFeed, isLive } = useTrafficPolling();
+  
+  const [isPaused, setIsPaused] = useState(false);
+  const [frozenFeed, setFrozenFeed] = useState([]);
+  const [filter, setFilter] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedRow, setSelectedRow] = useState(null);
+
+  const currentFeed = isPaused ? frozenFeed : trafficFeed;
+
+  const handlePauseToggle = () => {
+    if (!isPaused) {
+      setFrozenFeed([...trafficFeed]);
     }
+    setIsPaused(!isPaused);
   };
 
-  const getIcon = (type) => {
-    switch (type.toLowerCase()) {
-      case 'normal': return <Activity className="w-4 h-4 text-emerald-400" />;
-      case 'attack': return <ShieldAlert className="w-4 h-4 text-rose-400" />;
-      case 'evasion': return <AlertTriangle className="w-4 h-4 text-amber-400" />;
-      case 'poisoning': return <Cpu className="w-4 h-4 text-purple-400" />;
-      default: return <Activity className="w-4 h-4 text-slate-400" />;
+  const displayFeed = useMemo(() => {
+    if (!currentFeed) return [];
+    let processed = [...currentFeed].reverse();
+    if (filter !== 'ALL') {
+      processed = processed.filter(item => (item.type?.toLowerCase() || 'normal') === filter.toLowerCase());
     }
-  };
-
-  const visibleFeed = [...feed].reverse().slice(0, 20);
+    if (searchQuery) {
+      processed = processed.filter(item => {
+        const ip = item.ip || item.source_ip || '';
+        return ip.includes(searchQuery);
+      });
+    }
+    return processed.slice(0, 100);
+  }, [currentFeed, filter, searchQuery]);
 
   return (
-    <div className="card flex flex-col h-full">
-      <div className="p-4 border-b border-slate-700 bg-slate-800/50 flex justify-between items-center z-10 sticky top-0">
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <Activity className="w-5 h-5 text-blue-400" />
-          Live Traffic Feed
-        </h2>
-        <span className="text-xs font-mono text-slate-400 px-2 py-1 bg-slate-900 rounded-md">
-          {feed.length} requests
-        </span>
-      </div>
-      
-      <div className="flex-1 overflow-y-auto p-2">
-        <div className="flex flex-col gap-2">
-          {visibleFeed.length === 0 ? (
-            <div className="text-center p-8 text-slate-500 italic">No traffic recorded yet...</div>
-          ) : (
-            visibleFeed.map((event, idx) => (
-              <div 
-                key={event.time + '-' + idx} 
-                className={`p-3 rounded-lg flex items-center justify-between transition-colors ${getRowColor(event.type)} animate-slide-in-top`}
-                style={{ animationDelay: `${idx * 0.05}s` }}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-full bg-slate-900/50">
-                    {getIcon(event.type)}
-                  </div>
-                  <div>
-                    <div className="font-mono text-sm font-medium text-slate-200">{event.ip}</div>
-                    <div className="text-xs text-slate-400 uppercase tracking-wider">{event.type}</div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-xs font-semibold px-2 py-1 rounded bg-slate-900/50 text-slate-300">
-                    {(event.confidence * 100).toFixed(1)}% conf
-                  </div>
-                  <div className="text-xs text-slate-500 mt-1 capitalize">{event.status}</div>
-                </div>
-              </div>
-            ))
-          )}
+    <div className="flex flex-col gap-6 w-full max-w-7xl mx-auto h-full relative">
+      <TrafficDrawer row={selectedRow} isOpen={!!selectedRow} onClose={() => setSelectedRow(null)} />
+      <div className="glass-card flex-1 flex flex-col overflow-hidden rounded-2xl border-white/[0.05] shadow-2xl relative">
+        <div className="px-6 py-5 border-b border-black/[0.05] dark:border-white/[0.05] bg-slate-100/80 dark:bg-black/40 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors duration-300">
+          <div className="flex items-center gap-4">
+            <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+              <Activity size={24} />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold tracking-wide text-slate-900 dark:text-white">Live Traffic Feed</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Real-time system log ingestion.</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+             <LiveIndicator isLive={isLive && !isPaused} />
+             <button 
+               onClick={handlePauseToggle}
+               className={`p-2 rounded-lg border shadow-sm transition-all flex items-center gap-2 text-sm font-bold ${
+                 isPaused ? 'bg-rose-500 text-white border-rose-600' : 'bg-white dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 border-slate-200 dark:border-zinc-700 hover:bg-slate-50 dark:hover:bg-zinc-700'
+               }`}
+             >
+               {isPaused ? <Play size={16} /> : <Pause size={16} />}
+               {isPaused ? 'RESUME' : 'PAUSE'}
+             </button>
+          </div>
+        </div>
+        <div className="px-6 py-3 border-b border-black/[0.05] dark:border-white/[0.05] bg-white/50 dark:bg-[#0c0c0c]/80 flex flex-wrap items-center justify-between gap-4 transition-colors duration-300">
+          <div className="flex items-center gap-2">
+            <Filter size={16} className="text-slate-400 dark:text-zinc-500" />
+            <select value={filter} onChange={(e) => setFilter(e.target.value)} className="text-sm font-semibold bg-transparent border-none text-slate-700 dark:text-slate-300 focus:ring-0 cursor-pointer outline-none">
+              <option value="ALL">All Traffic</option>
+              <option value="NORMAL">Normal</option>
+              <option value="ATTACK">Attacks</option>
+              <option value="EVASION">Evasions</option>
+              <option value="POISONING">Poisoning</option>
+            </select>
+          </div>
+          <div className="relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input type="text" placeholder="Search IP Address..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-8 pr-4 py-1.5 text-sm rounded-lg bg-white dark:bg-black/60 border border-slate-200 dark:border-zinc-800 w-48 focus:w-64 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-slate-700 dark:text-slate-200 shadow-sm" />
+          </div>
+        </div>
+        <div className="flex-1 overflow-auto bg-white/30 dark:bg-[#080808]/50 transition-colors duration-300">
+          <table className="w-full text-left border-collapse">
+             <thead className="sticky top-0 bg-slate-100/90 dark:bg-black/90 backdrop-blur-md z-10 border-b border-black/10 dark:border-white/10 shadow-sm">
+               <tr>
+                 <th className="p-4 text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Timestamp</th>
+                 <th className="p-4 text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Source IP</th>
+                 <th className="p-4 text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Traffic Type</th>
+                 <th className="p-4 text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Confidence</th>
+                 <th className="p-4 text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">Status</th>
+               </tr>
+             </thead>
+             <tbody>
+               <AnimatePresence>
+                 {displayFeed.map((row) => (
+                   <TrafficRow key={`${row.time}-${row.ip}`} row={row} onClick={setSelectedRow} />
+                 ))}
+               </AnimatePresence>
+             </tbody>
+          </table>
+          {displayFeed.length === 0 && <div className="p-10 text-center text-slate-500 dark:text-zinc-500 text-sm font-medium">No matching traffic logs found.</div>}
         </div>
       </div>
     </div>

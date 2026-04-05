@@ -19,7 +19,12 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="SentinelML Backend")
 
+<<<<<<< HEAD
 # CORS
+=======
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173,http://127.0.0.1:3000").split(",")
+
+>>>>>>> 087c814 (Frontend UI update)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
