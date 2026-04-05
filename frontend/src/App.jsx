@@ -1,56 +1,100 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Dashboard from './components/Dashboard';
-import { useTrafficPolling } from './hooks/useTrafficPolling';
-import AlertToast from './components/AlertToast';
+import Sidebar from './components/Sidebar';
+import Topbar from './components/Topbar';
+import AlertHistory from './components/AlertHistory';
+import TrafficFeed from './components/TrafficFeed';
+import { default as EmptyState } from './components/EmptyState';
+import { AlertProvider, useAlerts } from './hooks/useAlerts';
+import FlashOverlay from './components/FlashOverlay';
+import ToastContainer from './components/ToastContainer';
+import AttackChart from './components/AttackChart';
 
-function App() {
-  const data = useTrafficPolling();
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error("React Crash:", error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-10 text-red-500 bg-white dark:bg-black min-h-screen">
+          <h1 className="text-2xl font-bold">Something went wrong.</h1>
+          <pre className="mt-4 p-4 bg-gray-100 dark:bg-gray-900 border border-red-500">{this.state.error.toString()}</pre>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function MainApp() {
+  const [activeItem, setActiveItem] = useState('Dashboards');
+  const [theme, setTheme] = useState(
+    localStorage.getItem('theme') || 'dark'
+  );
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const globalDataStr = useAlerts();
 
   return (
-    <div className="min-h-screen flex flex-col font-sans">
-      <header className="bg-slate-800 border-b border-slate-700 px-6 py-4 flex items-center justify-between sticky top-0 z-50">
-        <div className="flex items-center gap-3">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="url(#gradient)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <defs>
-              <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#3b82f6" />
-                <stop offset="100%" stopColor="#8b5cf6" />
-              </linearGradient>
-            </defs>
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            <path d="m9 12 2 2 4-4" />
-          </svg>
-          <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400">
-            SentinelML
-          </h1>
-        </div>
-        
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-700">
-          {data.isLive ? (
-            <>
-              <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-              </span>
-              <span className="text-sm font-medium text-emerald-400">System Live</span>
-            </>
-          ) : (
-            <>
-              <span className="relative flex h-3 w-3">
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
-              </span>
-              <span className="text-sm font-medium text-rose-400">Offline / Standby</span>
-            </>
-          )}
-        </div>
-      </header>
+    <div className="flex font-sans min-h-screen text-slate-900 dark:text-slate-200 transition-colors duration-300">
+      <FlashOverlay />
+      <ToastContainer />
+      <Sidebar activeItem={activeItem} setActiveItem={setActiveItem} />
       
-      <main className="flex-1 p-6 z-0">
-        <Dashboard data={data} />
-      </main>
-
-      <AlertToast feed={data.trafficFeed} />
+      {/* Main Content wrapper */}
+      <div className="flex-1 ml-64 flex flex-col relative min-h-screen">
+        <Topbar isLive={globalDataStr.isLive} theme={theme} setTheme={setTheme} />
+        
+        <main className="flex-1 p-8 relative z-0 flex flex-col">
+          {activeItem === 'Dashboards' ? (
+            <Dashboard data={globalDataStr} />
+          ) : activeItem === 'Traffic' ? (
+            <TrafficFeed />
+          ) : activeItem === 'Alerts' ? (
+            <AlertHistory />
+          ) : activeItem === 'Attack' ? (
+            <div className="flex flex-col gap-6 w-full max-w-7xl mx-auto h-full">
+               <div className="h-[500px]">
+                  <AttackChart />
+               </div>
+            </div>
+          ) : (
+            <div className="flex-1 glass-card flex items-center justify-center min-h-[60vh] mt-4">
+              <EmptyState 
+                message={`${activeItem} Module Offline`} 
+                subMessage="This module is currently disabled or undergoing maintenance. Please return to Dashboards." 
+              />
+            </div>
+          )}
+        </main>
+      </div>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <ErrorBoundary>
+      <AlertProvider>
+         <MainApp />
+      </AlertProvider>
+    </ErrorBoundary>
   );
 }
 

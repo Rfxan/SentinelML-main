@@ -1,50 +1,45 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000';
 
 export const useTrafficPolling = () => {
   const [trafficFeed, setTrafficFeed] = useState([]);
   const [modelStats, setModelStats] = useState(null);
   const [blockedIPs, setBlockedIPs] = useState({});
   const [isLive, setIsLive] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    let trafficInterval;
-    let blockedInterval;
+    let pollInterval;
 
-    const fetchFast = async () => {
+    const fetchAll = async () => {
       try {
-        const [feedRes, statsRes] = await Promise.all([
+        const [feedRes, statsRes, blockedRes] = await Promise.all([
           axios.get(`${API_BASE}/traffic-feed`),
-          axios.get(`${API_BASE}/model-stats`)
+          axios.get(`${API_BASE}/model-stats`),
+          axios.get(`${API_BASE}/blocked-ips`)
         ]);
+        
         setTrafficFeed(feedRes.data);
         setModelStats(statsRes.data);
+        setBlockedIPs(blockedRes.data);
         setIsLive(true);
       } catch (err) {
+        console.error("Failed to connect to backend:", err);
         setIsLive(false);
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    const fetchSlow = async () => {
-      try {
-        const res = await axios.get(`${API_BASE}/blocked-ips`);
-        setBlockedIPs(res.data);
-      } catch (err) { }
-    };
-
-    fetchFast();
-    fetchSlow();
-
-    trafficInterval = setInterval(fetchFast, 2000);
-    blockedInterval = setInterval(fetchSlow, 3000);
+    fetchAll();
+    pollInterval = setInterval(fetchAll, 3000);
 
     return () => {
-      clearInterval(trafficInterval);
-      clearInterval(blockedInterval);
+      clearInterval(pollInterval);
     };
   }, []);
 
-  return { trafficFeed, modelStats, blockedIPs, isLive };
+  return { trafficFeed, modelStats, blockedIPs, isLive, isLoading };
 };
