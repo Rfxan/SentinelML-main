@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ChevronRight, ShieldCheck, ShieldAlert, Activity, Sun, Moon } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 
-const Topbar = ({ isLive, theme, setTheme }) => {
+const Topbar = ({ isLive, theme, setTheme, activeItem }) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const handleAnalyze = () => {
@@ -21,7 +21,9 @@ const Topbar = ({ isLive, theme, setTheme }) => {
         <ChevronRight size={14} className="text-slate-400 dark:text-slate-600" />
         <span className="hover:text-slate-900 dark:hover:text-slate-200 cursor-pointer transition-colors">Admin</span>
         <ChevronRight size={14} className="text-slate-400 dark:text-slate-600" />
-        <span className="text-slate-900 dark:text-white font-semibold">Security Dashboard</span>
+        <span className="text-slate-900 dark:text-white font-semibold">
+          {activeItem === 'Dashboards' ? 'Security Dashboard' : activeItem}
+        </span>
       </div>
 
       {/* Right Side Actions */}

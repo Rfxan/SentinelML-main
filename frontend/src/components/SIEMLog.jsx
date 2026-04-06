@@ -23,14 +23,14 @@ const SIEMLog = () => {
   }, []);
 
   return (
-    <div className="flex flex-col w-full max-w-7xl mx-auto h-full p-6 bg-slate-950 dark:bg-[#0c0c0c] text-green-400 font-mono rounded-xl border border-slate-800 shadow-2xl glass-card">
-      <div className="flex items-center gap-3 border-b border-slate-800 pb-4 mb-4">
+    <div className="flex flex-col w-full max-w-7xl mx-auto h-full p-6 bg-slate-50 dark:bg-[#0c0c0c] text-green-600 dark:text-green-400 font-mono rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl dark:shadow-2xl glass-card">
+      <div className="flex items-center gap-3 border-b border-slate-200 dark:border-slate-800 pb-4 mb-4">
         <Terminal size={24} className="text-emerald-500" />
-        <h2 className="text-xl font-bold text-slate-100 uppercase tracking-widest drop-shadow-sm">SIEM Live Event Stream</h2>
+        <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 uppercase tracking-widest drop-shadow-sm">SIEM Live Event Stream</h2>
       </div>
       <div className="flex-1 overflow-auto scrollbar-thin">
         <table className="w-full text-sm text-left border-collapse">
-          <thead className="text-xs text-slate-400 uppercase sticky top-0 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 z-10 shadow-sm">
+          <thead className="text-xs text-slate-500 dark:text-slate-400 uppercase sticky top-0 bg-slate-100/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 z-10 shadow-sm">
             <tr>
               <th className="py-3 px-4">Timestamp</th>
               <th className="py-3 px-4">Incident ID</th>
@@ -51,11 +51,11 @@ const SIEMLog = () => {
                 'bg-emerald-500/20 text-emerald-500 border-emerald-500/30';
 
               return (
-                <tr key={i} className="border-b border-slate-800/50 hover:bg-slate-900/50 transition-colors">
-                  <td className="py-3 px-4 whitespace-nowrap text-slate-400 text-xs font-mono">{log.timestamp}</td>
-                  <td className="py-3 px-4 text-emerald-500 font-mono text-xs">{log.incident_id}</td>
-                  <td className="py-3 px-4 text-blue-400 font-medium">{log.source_ip}</td>
-                  <td className="py-3 px-4 text-slate-300 uppercase text-xs font-bold">{log.event_type}</td>
+                <tr key={i} className="border-b border-slate-200 dark:border-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-900/50 transition-colors">
+                  <td className="py-3 px-4 whitespace-nowrap text-slate-600 dark:text-slate-400 text-xs font-mono">{log.timestamp}</td>
+                  <td className="py-3 px-4 text-emerald-600 dark:text-emerald-500 font-mono text-xs">{log.incident_id}</td>
+                  <td className="py-3 px-4 text-blue-500 dark:text-blue-400 font-medium">{log.source_ip}</td>
+                  <td className="py-3 px-4 text-slate-700 dark:text-slate-300 uppercase text-xs font-bold">{log.event_type}</td>
                   <td className="py-3 px-4 text-amber-500 font-mono text-xs">{log.mitre_id}</td>
                   <td className="py-3 px-4 text-center">
                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold inline-block border ${sevClass}`}>

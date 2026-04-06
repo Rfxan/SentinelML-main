@@ -68,7 +68,7 @@ function MainApp() {
       
       {/* Main Content wrapper */}
       <div className="flex-1 ml-64 flex flex-col relative min-h-screen">
-        <Topbar isLive={globalDataStr.isLive} theme={theme} setTheme={setTheme} />
+        <Topbar isLive={globalDataStr.isLive} theme={theme} setTheme={setTheme} activeItem={activeItem} />
         
         <main className="flex-1 p-8 relative flex flex-col">
           {activeItem === 'Dashboards' ? (

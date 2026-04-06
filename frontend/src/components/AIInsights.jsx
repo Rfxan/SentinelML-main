@@ -48,7 +48,7 @@ const AIInsights = ({ className }) => {
   };
 
   return (
-    <div className={`p-5 rounded-2xl bg-white dark:bg-[#1A1F2B] border border-slate-200 dark:border-white/10 shadow-lg dark:shadow-none transition-colors duration-300 ${className}`}>
+    <div className={`p-5 rounded-2xl bg-white dark:bg-white/[0.02] border border-slate-200 dark:border-white/[0.1] shadow-lg dark:shadow-2xl transition-colors duration-300 ${className}`}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <BrainCircuit className="w-6 h-6 text-indigo-500 dark:text-indigo-400" />

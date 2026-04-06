@@ -69,11 +69,11 @@ const IncidentDashboard = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-3">
             <ShieldAlert className="text-emerald-500" size={28} />
             SIEM Incident Command
           </h1>
-          <p className="text-slate-400 text-sm mt-1">Real-time correlation and threat grouping engine</p>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Real-time correlation and threat grouping engine</p>
         </div>
         <div className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
           <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
@@ -105,27 +105,27 @@ const IncidentDashboard = () => {
           gradientClass="bg-rose-500" 
         />
         <div className="glass-card p-6 flex flex-col justify-between">
-          <p className="text-slate-400 font-medium text-sm mb-2">Top Offending IPs</p>
+          <p className="text-slate-500 dark:text-slate-400 font-medium text-sm mb-2">Top Offending IPs</p>
           <div className="flex flex-wrap gap-2">
             {summary.top_ips.map((ip, i) => (
-              <span key={i} className="text-[10px] font-mono bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700">
+              <span key={i} className="text-[10px] font-mono bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded border border-slate-300 dark:border-slate-700">
                 {ip}
               </span>
             ))}
-            {summary.top_ips.length === 0 && <span className="text-slate-600 italic text-xs">Awaiting traffic...</span>}
+            {summary.top_ips.length === 0 && <span className="text-slate-400 dark:text-slate-600 italic text-xs">Awaiting traffic...</span>}
           </div>
         </div>
       </div>
 
       {/* Incident Table */}
       <div className="glass-card overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-800 bg-slate-900/50 flex items-center justify-between">
-          <h3 className="font-bold text-slate-200">Active Threat Clusters</h3>
-          <span className="text-xs text-slate-500">{incidents.length} incidents being tracked</span>
+        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between">
+          <h3 className="font-bold text-slate-800 dark:text-slate-200">Active Threat Clusters</h3>
+          <span className="text-xs text-slate-500">{(incidents || []).length} incidents being tracked</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
-            <thead className="bg-slate-900/30 text-slate-400 text-xs uppercase tracking-wider">
+            <thead className="bg-slate-100/50 dark:bg-slate-900/30 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider">
               <tr>
                 <th className="px-6 py-3 font-semibold">Incident ID</th>
                 <th className="px-6 py-3 font-semibold">Source IP</th>
@@ -137,20 +137,20 @@ const IncidentDashboard = () => {
                 <th className="px-6 py-3 font-semibold"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/50">
-              {incidents.map((inc) => (
-                <tr key={inc.incident_id} className="hover:bg-slate-800/20 transition-colors group">
-                  <td className="px-6 py-4 font-mono text-emerald-400 text-sm">{inc.incident_id}</td>
-                  <td className="px-6 py-4 font-medium text-slate-300">{inc.ip}</td>
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-800/50">
+              {(incidents || []).map((inc) => (
+                <tr key={inc.incident_id} className="hover:bg-slate-100 dark:hover:bg-slate-800/20 transition-colors group">
+                  <td className="px-6 py-4 font-mono text-emerald-500 dark:text-emerald-400 text-sm">{inc.incident_id}</td>
+                  <td className="px-6 py-4 font-medium text-slate-700 dark:text-slate-300">{inc.ip}</td>
                   <td className="px-6 py-4 text-center">
-                    <span className="px-2 py-0.5 bg-slate-800 rounded-full text-xs text-slate-400 border border-slate-700">
+                    <span className="px-2 py-0.5 bg-slate-200 dark:bg-slate-800 rounded-full text-xs text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700">
                       {inc.event_count}
                     </span>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
                       {getPatternIcon(inc.pattern)}
-                      <span className="text-xs text-slate-400 capitalize">{inc.pattern}</span>
+                      <span className="text-xs text-slate-600 dark:text-slate-400 capitalize">{inc.pattern}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -169,13 +169,13 @@ const IncidentDashboard = () => {
                     {inc.last_seen}
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button className="p-1 hover:bg-slate-700 rounded transition-colors text-slate-500 group-hover:text-emerald-400">
+                    <button className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors text-slate-400 dark:text-slate-500 group-hover:text-emerald-500 dark:group-hover:text-emerald-400">
                       <ChevronRight size={18} />
                     </button>
                   </td>
                 </tr>
               ))}
-              {incidents.length === 0 && (
+              {(incidents || []).length === 0 && (
                 <tr>
                   <td colSpan="8" className="px-6 py-12 text-center text-slate-500 italic">
                     No active threat clusters detected. System is calm.

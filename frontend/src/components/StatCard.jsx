@@ -37,7 +37,7 @@ const StatCard = ({ title, value, icon: Icon, colorClass, gradientClass }) => {
       
       <div className="relative z-10 flex items-center justify-between">
         <div>
-          <p className="text-slate-400 font-medium text-sm mb-1">{title}</p>
+          <p className="text-slate-500 dark:text-slate-400 font-medium text-sm mb-1">{title}</p>
           <h3 className={`text-3xl font-bold tracking-tight ${colorClass}`}>
             {displayValue.toLocaleString()}
           </h3>
