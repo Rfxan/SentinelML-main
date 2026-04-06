@@ -5,6 +5,9 @@ import pandas as pd
 import time
 import urllib.request
 import logging
+import shutil
+import json
+from datetime import datetime
 from xgboost import XGBClassifier
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.model_selection import train_test_split
@@ -19,6 +22,8 @@ SCALER_PATH = os.path.join(DATA_DIR, "scaler.pkl")
 STATS_PATH = os.path.join(DATA_DIR, "train_stats.pkl")
 DATASET_URL = "https://raw.githubusercontent.com/defcom17/NSL_KDD/master/KDDTrain%2B.txt"
 DATASET_FILE = os.path.join(DATA_DIR, "KDDTrain+.txt")
+VERSION_DIR = os.path.join(DATA_DIR, "versions")
+MANIFEST_PATH = os.path.join(VERSION_DIR, "manifest.json")
 
 COLUMNS = [
     "duration", "protocol_type", "service", "flag", "src_bytes", "dst_bytes", "land",
@@ -149,9 +154,99 @@ class MLModel:
             'event': 'train'
         })
         
+        # Task 2: Model Versioning before overwrite
+        if not os.path.exists(VERSION_DIR):
+            os.makedirs(VERSION_DIR)
+        
+        version_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+        try:
+            if os.path.exists(MODEL_PATH):
+                shutil.copy2(MODEL_PATH, os.path.join(VERSION_DIR, f"model_{version_id}.pkl"))
+                shutil.copy2(SCALER_PATH, os.path.join(VERSION_DIR, f"scaler_{version_id}.pkl"))
+                shutil.copy2(STATS_PATH, os.path.join(VERSION_DIR, f"train_stats_{version_id}.pkl"))
+                
+                # Update Manifest
+                manifest = []
+                if os.path.exists(MANIFEST_PATH):
+                    with open(MANIFEST_PATH, 'r') as f:
+                        manifest = json.load(f)
+                
+                manifest.append({
+                    "version_id": version_id,
+                    "timestamp": datetime.now().isoformat(),
+                    "accuracy": self.accuracy,
+                    "f1": self.f1
+                })
+                
+                # Cleanup: keep only 5
+                if len(manifest) > 5:
+                    oldest = manifest.pop(0)
+                    for prefix in ["model", "scaler", "train_stats"]:
+                        old_file = os.path.join(VERSION_DIR, f"{prefix}_{oldest['version_id']}.pkl")
+                        if os.path.exists(old_file):
+                            os.remove(old_file)
+                
+                with open(MANIFEST_PATH, 'w') as f:
+                    json.dump(manifest, f, indent=2)
+        except Exception as e:
+            logger.error(f"Versioning failed: {e}")
+            raise  # Re-raise to prevent overwrite if versioning fails (Task 2 requirement)
+
         joblib.dump(self.model, MODEL_PATH)
         joblib.dump(self.scaler, SCALER_PATH)
         joblib.dump(self.train_stats, STATS_PATH)
+
+    def list_versions(self):
+        if not os.path.exists(MANIFEST_PATH):
+            return []
+        try:
+            with open(MANIFEST_PATH, 'r') as f:
+                manifest = json.load(f)
+            return sorted(manifest, key=lambda x: x['version_id'], reverse=True)
+        except Exception:
+            return []
+
+    def rollback(self, version_id: str):
+        if not os.path.exists(MANIFEST_PATH):
+            raise ValueError("No versions found.")
+        
+        with open(MANIFEST_PATH, 'r') as f:
+            manifest = json.load(f)
+            
+        target = next((v for v in manifest if v['version_id'] == version_id), None)
+        if not target:
+            raise ValueError(f"Version {version_id} not found in manifest.")
+
+        # Atomic copy rollback
+        try:
+            shutil.copy2(os.path.join(VERSION_DIR, f"model_{version_id}.pkl"), MODEL_PATH)
+            shutil.copy2(os.path.join(VERSION_DIR, f"scaler_{version_id}.pkl"), SCALER_PATH)
+            shutil.copy2(os.path.join(VERSION_DIR, f"train_stats_{version_id}.pkl"), STATS_PATH)
+            return self.load()
+        except Exception as e:
+            logger.error(f"Rollback failed: {e}")
+            raise ValueError(f"Rollback failed: {e}")
+
+    def check_drift(self, prev_accuracy: float, prev_f1: float) -> dict:
+        if prev_accuracy == 0.0:
+            return {"drifted": False, "accuracy_delta": 0.0, "f1_delta": 0.0, "severity": "none"}
+        
+        accuracy_delta = round(self.accuracy - prev_accuracy, 4)
+        f1_delta = round(self.f1 - prev_f1, 4)
+        
+        if accuracy_delta < -0.05:
+            severity = "critical"
+        elif accuracy_delta < -0.01:
+            severity = "warning"
+        else:
+            severity = "none"
+            
+        return {
+            "drifted": severity != "none",
+            "accuracy_delta": accuracy_delta,
+            "f1_delta": f1_delta,
+            "severity": severity
+        }
 
     def load(self):
         if os.path.exists(MODEL_PATH):

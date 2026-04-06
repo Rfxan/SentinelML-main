@@ -5,11 +5,13 @@ import Topbar from './components/Topbar';
 import AlertHistory from './components/AlertHistory';
 import TrafficFeed from './components/TrafficFeed';
 import ExtractionRadar from './components/ExtractionRadar';
+import ModelVersions from './components/ModelVersions';
 import { default as EmptyState } from './components/EmptyState';
 import { AlertProvider, useAlerts } from './hooks/useAlerts';
 import FlashOverlay from './components/FlashOverlay';
 import ToastContainer from './components/ToastContainer';
 import AttackChart from './components/AttackChart';
+import AdversarialSimulator from './components/AdversarialSimulator';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -62,7 +64,7 @@ function MainApp() {
       <div className="flex-1 ml-64 flex flex-col relative min-h-screen">
         <Topbar isLive={globalDataStr.isLive} theme={theme} setTheme={setTheme} />
         
-        <main className="flex-1 p-8 relative z-0 flex flex-col">
+        <main className="flex-1 p-8 relative flex flex-col">
           {activeItem === 'Dashboards' ? (
             <Dashboard data={globalDataStr} />
           ) : activeItem === 'Traffic' ? (
@@ -70,14 +72,19 @@ function MainApp() {
           ) : activeItem === 'Alerts' ? (
             <AlertHistory />
           ) : activeItem === 'Attack' ? (
-            <div className="flex flex-col gap-6 w-full max-w-7xl mx-auto h-full">
-               <div className="h-[500px]">
+            <div className="flex flex-col gap-6 w-full max-w-7xl mx-auto h-full overflow-y-auto pb-10">
+               <div className="h-[500px] shrink-0">
                   <AttackChart />
                </div>
+               <AdversarialSimulator />
             </div>
           ) : activeItem === 'Extraction' ? (
             <div className="flex flex-col gap-6 w-full max-w-7xl mx-auto h-full">
               <ExtractionRadar />
+            </div>
+          ) : activeItem === 'Versions' ? (
+            <div className="flex flex-col gap-6 w-full max-w-7xl mx-auto h-full">
+              <ModelVersions />
             </div>
           ) : (
             <div className="flex-1 glass-card flex items-center justify-center min-h-[60vh] mt-4">

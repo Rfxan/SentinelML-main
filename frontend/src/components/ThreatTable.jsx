@@ -3,7 +3,7 @@ import EmptyState from './EmptyState';
 import { Shield, ShieldBan, Trash2 } from 'lucide-react';
 import axios from 'axios';
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
 const ThreatTable = ({ threats }) => {
   const hasThreats = threats && threats.length > 0;

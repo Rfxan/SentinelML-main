@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { X, Info, Shield, BarChart2 } from 'lucide-react';
+import { X, Info, Shield, BarChart2, ArrowLeft } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 const SHAPPanel = ({ event, onClose }) => {
@@ -46,22 +46,24 @@ const SHAPPanel = ({ event, onClose }) => {
       transition={{ type: 'spring', damping: 25, stiffness: 200 }}
       className="fixed top-0 right-0 h-full w-[450px] bg-zinc-950/95 border-l border-white/5 backdrop-blur-3xl z-[130] shadow-[-20px_0_40px_rgba(0,0,0,0.4)] flex flex-col"
     >
-      <div className="p-6 border-b border-white/5 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg">
-            <Shield size={20} />
-          </div>
-          <div>
-            <h2 className="text-lg font-black text-white">Explainability Engine</h2>
-            <p className="text-xs text-slate-500">Local SHAP feature importance analysis.</p>
-          </div>
-        </div>
+      <div className="p-6 border-b border-white/5 flex flex-col gap-4">
         <button 
           onClick={onClose}
-          className="p-2 hover:bg-white/5 rounded-full text-slate-500 hover:text-white transition-all"
+          className="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-bold text-slate-300 hover:text-white uppercase tracking-widest transition-all w-fit border border-white/5"
         >
-          <X size={20} />
+          <ArrowLeft size={14} /> Back to Inspection
         </button>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg">
+              <Shield size={20} />
+            </div>
+            <div>
+              <h2 className="text-lg font-black text-white">Explainability Engine</h2>
+              <p className="text-xs text-slate-500">Local SHAP feature importance analysis.</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-8">

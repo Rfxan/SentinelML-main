@@ -7,7 +7,8 @@ import {
   Target, 
   Ban, 
   HeartPulse,
-  Eye
+  Eye,
+  History
 } from 'lucide-react';
 
 const navItems = [
@@ -19,6 +20,7 @@ const navItems = [
   { name: 'Block List', icon: Ban },
   { name: 'Health', icon: HeartPulse },
   { name: 'Extraction', icon: Eye },
+  { name: 'Versions', icon: History },
 ];
 
 const Sidebar = ({ activeItem, setActiveItem }) => {

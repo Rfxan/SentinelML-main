@@ -18,6 +18,8 @@ from simulator import Simulator
 from threat_intel import get_mitre_tag, get_label_name
 from integrity import store_model_hash, verify_model_hash, log_event, get_audit_log, verify_chain
 from extractor_detector import ExtractionDetector
+from adversarial_attacker import AdversarialAttacker
+from rate_limiter import TrainRateLimiter
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -39,6 +41,8 @@ defender = None
 blocker = Blocker(strike_threshold=3)
 simulator = Simulator()
 extraction_detector = ExtractionDetector(risk_threshold=60)
+adversarial_attacker = None
+train_rate_limiter = None
 
 # Traffic Log
 traffic_feed = deque(maxlen=500)
@@ -88,12 +92,19 @@ async def get_geo_info(ip: str):
 
 @app.on_event("startup")
 async def startup_event():
-    global defender
+    global defender, adversarial_attacker, train_rate_limiter
     logger.info("Initializing SentinelML System...")
+    
+    # Load or initial train
     if not model.load():
         logger.info("No saved model found. Training initial model...")
         model.train()
+    
+    # Initialize dependent components
     defender = Defender(train_stats=model.train_stats)
+    adversarial_attacker = AdversarialAttacker(model)
+    train_rate_limiter = TrainRateLimiter(window_seconds=60, max_calls=10)
+    
     store_model_hash(MODEL_PATH)
     log_event({"event": "system_startup", "accuracy": model.accuracy})
     logger.info("System Ready.")
@@ -173,6 +184,11 @@ async def train_endpoint(req: TrainRequest):
     if blocker.is_blocked(req.ip):
         raise HTTPException(status_code=403, detail="IP is blocked")
 
+    # Task 3: Rate Limiting
+    allowed, count, reset_in = train_rate_limiter.check_and_record(req.ip)
+    if not allowed:
+        raise HTTPException(status_code=429, detail=f"Rate limit: {count} training calls in 60s. Retry in {reset_in}s.")
+
     pred_label, confidence = model.predict(req.features)
     is_poisoning = defender.detect_poisoning(req.features, req.label, pred_label, confidence)
     is_blocked = blocker.record_strike(req.ip, is_adversarial=is_poisoning, reason="Poisoning detected")
@@ -209,6 +225,8 @@ async def reset_system():
     blocker.blocked_ips.clear()
     blocker.strikes.clear()
     extraction_detector.reset()
+    if train_rate_limiter:
+        train_rate_limiter.reset_all()
     stats["total_predictions"] = 0
     stats["attacks_caught"] = 0
     stats["adversarial_attempts"] = 0
@@ -234,6 +252,10 @@ async def unblock_ip(ip: str):
     success = blocker.unblock_ip(ip)
     return {"status": "success" if success else "not_found"}
 
+@app.get("/train-rate-status")
+async def get_train_rate_status():
+    return train_rate_limiter.get_status()
+
 @app.get("/model-stats")
 async def get_model_stats():
     uptime = time.time() - stats["start_time"]
@@ -255,14 +277,61 @@ async def get_model_stats():
 
 @app.post("/retrain")
 async def retrain():
-    global defender
+    global defender, adversarial_attacker
     logger.info("Manual retrain triggered.")
+    
+    prev_accuracy = model.accuracy
+    prev_f1 = model.f1
+    
     model.train(new_samples=accepted_training_samples)
     accepted_training_samples.clear()
+    
     defender = Defender(train_stats=model.train_stats)
+    adversarial_attacker = AdversarialAttacker(model)
+    
     store_model_hash(MODEL_PATH)
+    
+    # Task 4: Drift Alerting
+    drift = model.check_drift(prev_accuracy, prev_f1)
+    if drift["drifted"]:
+        log_event({"event": "accuracy_drift_alert", **drift})
+        
     log_event({"event": "retrain", "accuracy": model.accuracy, "f1": model.f1})
-    return {"status": "success", "new_accuracy": round(model.accuracy, 4), "new_f1": round(model.f1, 4)}
+    return {
+        "status": "success", 
+        "new_accuracy": round(model.accuracy, 4), 
+        "new_f1": round(model.f1, 4),
+        "drift_alert": drift
+    }
+
+@app.get("/model-versions")
+async def get_model_versions():
+    return model.list_versions()
+
+@app.post("/model-rollback")
+async def model_rollback(payload: dict = Body(...)):
+    version_id = payload.get("version_id")
+    if not version_id:
+        raise HTTPException(400, "version_id is required")
+    
+    try:
+        result = model.rollback(version_id)
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+    
+    global defender, adversarial_attacker
+    defender = Defender(train_stats=model.train_stats)
+    adversarial_attacker = AdversarialAttacker(model)
+    
+    store_model_hash(MODEL_PATH)
+    log_event({"event": "rollback", "version_id": version_id, "accuracy": model.accuracy})
+    return result
+
+@app.get("/drift-alerts")
+async def get_drift_alerts():
+    entries = get_audit_log(n=200)
+    filtered = [e for e in entries if e.get("event") == "accuracy_drift_alert"]
+    return filtered[:50]
 
 @app.get("/model-history")
 async def get_model_history():
@@ -322,6 +391,14 @@ async def simulate(req: SimulateRequest):
         elif req.mode == "poison":
             f, l = simulator.generate_poison()
             await train_endpoint(TrainRequest(features=f, label=l, ip=ip))
+        elif req.mode == "fgsm":
+            f = simulator.generate_evasion()
+            adv = adversarial_attacker.fgsm(f, target_class=0, epsilon=0.1)
+            await predict(PredictRequest(features=adv, ip=ip))
+        elif req.mode == "pgd":
+            f = simulator.generate_evasion()
+            adv = adversarial_attacker.pgd(f, target_class=0, epsilon=0.1, iterations=10)
+            await predict(PredictRequest(features=adv, ip=ip))
         elif req.mode == "blitz":
             f, mode = simulator.generate_blitz()
             if mode == "poison":
