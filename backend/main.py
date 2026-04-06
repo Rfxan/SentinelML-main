@@ -24,6 +24,7 @@ from rate_limiter import TrainRateLimiter
 import ai
 import incident_engine
 import cluster_engine
+import reputation_engine
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -178,7 +179,12 @@ async def predict(req: PredictRequest):
     # Model integrity check
     integrity_ok = verify_model_hash(MODEL_PATH)
 
-    # 1. Evasion Check
+    # 1. Reputation Check (Zero-Strike)
+    rep = reputation_engine.check_ip(req.ip)
+    if rep["is_high_risk"] and not blocker.is_blocked(req.ip):
+        blocker.block_ip_manually(req.ip, reason=f"Global Threat Intel: {rep['label']} (Score: {rep['score']})")
+
+    # 2. Evasion Check
     is_evasion, evasion_risk = defender.detect_evasion(req.features)
 
     # 2. Prediction
@@ -234,7 +240,9 @@ async def predict(req: PredictRequest):
         "evasion_score": evasion_risk,
         "status": "blocked" if is_blocked else "allowed",
         "geo": geo,
-        "features": req.features
+        "features": req.features,
+        "reputation_score": rep["score"],
+        "reputation_label": rep["label"]
     }
     incident_engine.update(event)
     traffic_feed.appendleft(event)
@@ -268,6 +276,10 @@ async def train_endpoint(req: TrainRequest):
     if not allowed:
         raise HTTPException(status_code=429, detail=f"Rate limit: {count} training calls in 60s. Retry in {reset_in}s.")
 
+    rep = reputation_engine.check_ip(req.ip)
+    if rep["is_high_risk"] and not blocker.is_blocked(req.ip):
+        blocker.block_ip_manually(req.ip, reason=f"Global Threat Intel (Poisoning risk): {rep['label']} (Score: {rep['score']})")
+
     pred_label, confidence = model.predict(req.features)
     is_poisoning = defender.detect_poisoning(req.features, req.label, pred_label, confidence)
     is_blocked = blocker.record_strike(req.ip, is_adversarial=is_poisoning, reason="Poisoning detected")
@@ -281,7 +293,9 @@ async def train_endpoint(req: TrainRequest):
         "confidence": 1.0,
         "status": "blocked" if is_blocked else "allowed",
         "geo": geo,
-        "features": req.features
+        "features": req.features,
+        "reputation_score": rep["score"],
+        "reputation_label": rep["label"]
     }
     incident_engine.update(event)
     traffic_feed.appendleft(event)

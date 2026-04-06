@@ -64,6 +64,27 @@ const TrafficRow = ({ row, onClick }) => {
         )}
       </td>
       <td className="p-4 whitespace-nowrap text-sm font-mono">
+        {row.reputation_score !== undefined ? (
+          <div className="flex flex-col gap-1 w-24">
+            <div className="w-full bg-slate-200 dark:bg-white/10 h-1 rounded-full overflow-hidden">
+               <div 
+                 className={`h-full transition-all duration-1000 ${
+                   row.reputation_score > 80 ? 'bg-rose-500' : row.reputation_score > 40 ? 'bg-amber-500' : 'bg-emerald-500'
+                 }`} 
+                 style={{ width: `${row.reputation_score}%` }} 
+               />
+            </div>
+            <span className={`text-[10px] font-black uppercase tracking-tighter ${
+              row.reputation_score > 80 ? 'text-rose-500' : row.reputation_score > 40 ? 'text-amber-500' : 'text-emerald-500'
+            }`}>
+              {row.reputation_label || 'CHECKING'}
+            </span>
+          </div>
+        ) : (
+          <span className="text-xs text-slate-500 italic opacity-50">PRE-SOC</span>
+        )}
+      </td>
+      <td className="p-4 whitespace-nowrap text-sm font-mono">
         {(row.confidence * 100).toFixed(1)}%
       </td>
       <td className="p-4 whitespace-nowrap">
