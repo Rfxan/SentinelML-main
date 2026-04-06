@@ -5,8 +5,9 @@ import random
 import threading
 import sys
 
-BASE_URL = "http://localhost:8000"
 STOP_BACKGROUND = False
+BASE_URL = "http://localhost:8000" # default fallback
+
 
 def background_normal_traffic(delay=0.5):
     """Continuously pumps normal traffic in the background so the dashboard looks alive."""
@@ -30,19 +31,25 @@ def get_counts(intensity):
         return {"straight": 5, "evasion": 5, "poison": 5, "ddos": 10}
 
 def run_tests():
-    global STOP_BACKGROUND
+    global STOP_BACKGROUND, BASE_URL
     
     parser = argparse.ArgumentParser(description="SENTINELML HACKATHON LIVE DEMO GENERATOR")
     parser.add_argument("--mode", type=str, choices=["all", "evasion", "poison", "ddos", "normal", "straight"], default="all", help="Attack mode to test")
     parser.add_argument("--intensity", type=str, choices=["easy", "normal", "hard", "brutal"], default="hard", help="Volume of attacks (easy, normal, hard, brutal)")
     parser.add_argument("--no-background", action="store_true", help="Disable continuous background normal traffic")
+    parser.add_argument("--target", type=str, default="http://localhost:8000", help="Target URL of the SentinelML backend (e.g., http://192.168.1.10:8000)")
     
     args = parser.parse_args()
+    
+    # Update global base url based on args
+    BASE_URL = args.target.rstrip('/')
+    
     counts = get_counts(args.intensity)
 
     print("="*50)
     print("SENTINELML HACKATHON LIVE DEMO GENERATOR")
     print(f"[{args.intensity.upper()} INTENSITY]")
+    print(f"[TARGET: {BASE_URL}]")
     print("="*50)
 
     print("\n[✔] Connecting & Resetting State...")
