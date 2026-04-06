@@ -45,7 +45,7 @@ const RateLimiterPanel = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto pr-2 scrollbar-thin">
+      <div className="flex-1 overflow-y-auto pr-2 scrollbar-thin max-h-[300px]">
         {loading ? (
           <div className="h-full flex items-center justify-center text-slate-400 animate-pulse">Loading rates...</div>
         ) : totalTracked === 0 ? (

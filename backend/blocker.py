@@ -41,6 +41,12 @@ class Blocker:
                 return True
             return False
 
+    def unblock_all(self):
+        with self.lock:
+            self.blocked_ips.clear()
+            self.strikes.clear()
+            return True
+
     def block_ip_manually(self, ip, reason="Manual block"):
         with self.lock:
             self.blocked_ips[ip] = {
