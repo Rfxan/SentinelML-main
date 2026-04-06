@@ -3,6 +3,8 @@ import json
 import logging
 import time
 
+from llm import generate_text
+
 logger = logging.getLogger(__name__)
 
 # Ollama settings
@@ -16,34 +18,6 @@ _summary_cache = {
     "summary": "No significant activity generated yet."
 }
 CACHE_TTL = 10  # 10 seconds
-
-def generate_text(prompt: str, max_timeout: float = 3.0) -> str:
-    """
-    Generate text using local Ollama. Very fast timeout for real-time dashboard.
-    """
-    try:
-        with httpx.Client(timeout=max_timeout) as client:
-            resp = client.post(
-                f"{OLLAMA_BASE_URL}/api/generate",
-                json={
-                    "model": GENERATE_MODEL,
-                    "prompt": prompt,
-                    "stream": False,
-                    "options": {
-                        "temperature": 0.2, # Low temperature for more analytical/deterministic output
-                        "num_predict": 100  # Keep it short
-                    }
-                }
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            return data.get("response", "").strip()
-    except httpx.ReadTimeout:
-        logger.warning("Ollama API timed out.")
-        return "AI Analysis delayed: Engine is processing complex signals."
-    except Exception as e:
-        logger.error(f"Ollama generation failed: {e}")
-        return "AI Core temporarily offline. Defaulting to standard monitoring."
 
 def embed_text(text: str) -> list[float]:
     """
