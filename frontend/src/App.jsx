@@ -7,6 +7,9 @@ import TrafficFeed from './components/TrafficFeed';
 import ExtractionRadar from './components/ExtractionRadar';
 import ModelVersions from './components/ModelVersions';
 import SIEMLog from './components/SIEMLog';
+import BlockList from './components/BlockList';
+import HealthView from './components/HealthView';
+import ThreatView from './components/ThreatView';
 import { default as EmptyState } from './components/EmptyState';
 import { AlertProvider, useAlerts } from './hooks/useAlerts';
 import FlashOverlay from './components/FlashOverlay';
@@ -72,6 +75,8 @@ function MainApp() {
             <TrafficFeed />
           ) : activeItem === 'Alerts' ? (
             <AlertHistory />
+          ) : activeItem === 'Threat' ? (
+            <ThreatView />
           ) : activeItem === 'Attack' ? (
             <div className="flex flex-col gap-6 w-full max-w-7xl mx-auto h-full overflow-y-auto pb-10">
                <div className="h-[500px] shrink-0">
@@ -89,6 +94,12 @@ function MainApp() {
             </div>
           ) : activeItem === 'SIEM Log' ? (
             <SIEMLog />
+          ) : activeItem === 'Block List' ? (
+            <div className="flex flex-col gap-6 w-full max-w-7xl mx-auto h-full">
+              <BlockList />
+            </div>
+          ) : activeItem === 'Health' ? (
+            <HealthView />
           ) : (
             <div className="flex-1 glass-card flex items-center justify-center min-h-[60vh] mt-4">
               <EmptyState 

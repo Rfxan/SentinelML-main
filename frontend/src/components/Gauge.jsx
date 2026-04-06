@@ -50,13 +50,13 @@ const Gauge = ({ value }) => {
         </svg>
       </div>
 
-      {/* Value Readout in Center */}
-      <div className="absolute bottom-6 flex flex-col items-center justify-center z-20 pointer-events-none">
-        <span className="text-sm font-bold tracking-widest text-slate-400 uppercase mb-1">
+      {/* Value Readout positioned in document flow below the gauge so it never overlaps the needle */}
+      <div className="mt-2 flex flex-col items-center justify-center z-20 pointer-events-none">
+        <span className="text-xs font-bold tracking-widest text-slate-500 dark:text-slate-400 uppercase mb-1">
           System Risk
         </span>
         <div className="flex items-baseline gap-1">
-          <span className="text-5xl font-black text-white tracking-tighter">
+          <span className="text-5xl font-black text-slate-800 dark:text-white tracking-tighter">
             {value}
           </span>
           <span className="text-2xl text-slate-500 font-bold">%</span>

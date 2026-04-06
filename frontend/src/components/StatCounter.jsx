@@ -16,13 +16,13 @@ const StatCounter = ({ title, value, icon: Icon, colorClass }) => {
   }, [value]);
 
   return (
-    <div className={`p-4 rounded-xl border border-white/10 bg-slate-800/50 dark:bg-black/40 backdrop-blur-md flex items-center justify-between shadow-lg ${colorClass || ''}`}>
+    <div className={`p-4 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-black/40 backdrop-blur-md flex items-center justify-between shadow-sm dark:shadow-lg ${colorClass || ''}`}>
       <div>
-        <p className="text-sm font-medium text-slate-400 uppercase tracking-widest mb-1">{title}</p>
-        <p className="text-3xl font-bold font-mono tracking-tight text-white">{displayValue}</p>
+        <p className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">{title}</p>
+        <p className="text-3xl font-bold font-mono tracking-tight text-slate-800 dark:text-white">{displayValue}</p>
       </div>
       {Icon && (
-        <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center flex-shrink-0">
+        <div className="w-12 h-12 rounded-full bg-slate-200 dark:bg-white/5 flex items-center justify-center flex-shrink-0 text-slate-600 dark:text-white">
           <Icon className="w-6 h-6 opacity-80" />
         </div>
       )}

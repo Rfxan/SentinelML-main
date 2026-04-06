@@ -48,19 +48,19 @@ const ThreatMeter = () => {
       <motion.div
         variants={glowVariants}
         animate={currentVariant}
-        className="w-full h-full p-8 border rounded-2xl bg-slate-900/40 relative z-10 flex flex-col items-center"
+        className="w-full h-full p-8 border border-slate-200 dark:border-white/10 rounded-2xl bg-white/80 dark:bg-slate-900/40 backdrop-blur-md relative z-10 flex flex-col items-center shadow-lg dark:shadow-none"
       >
         {/* Glow backdrop behind the gauge */}
         {isCritical && (
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-red-500/10 blur-[100px] rounded-full pointer-events-none" />
         )}
         
-        <h2 className="text-xl font-bold text-white tracking-wide border-b border-white/10 pb-4 w-full text-center mb-6">
+        <h2 className="text-xl font-bold text-slate-800 dark:text-white tracking-wide border-b border-slate-200 dark:border-white/10 pb-4 w-full text-center mb-6">
           Global Threat Monitor
         </h2>
 
         {/* Central Radial Gauge */}
-        <div className="mb-10 w-full flex justify-center scale-110 sm:scale-100">
+        <div className="mb-16 w-full flex justify-center scale-110 sm:scale-100">
           <Gauge value={threatScore} />
         </div>
 
