@@ -6,7 +6,7 @@ class Simulator:
         self.continuous_indices = [0, 4, 5, 9, 10, 11, 12, 13, 14, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
 
     def generate_normal(self):
-        features = [float(np.random.random() * 0.1) for _ in range(41)]
+        features = [0.0 for _ in range(41)]
         features[4] = random.uniform(100, 500) # src_bytes
         features[22] = random.uniform(1, 10) # count
         return features
