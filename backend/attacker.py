@@ -69,7 +69,10 @@ def run_attacker():
 
     elif args.mode == "blitz":
         print(f"[*] Starting BLITZ attack...")
-        attack_ips = [f"10.0.0.{i}" for i in range(1, 10)]
+        attack_ips = [
+            "45.12.23.8", "103.21.244.1", "181.65.23.9", "77.88.55.2",
+            "8.8.8.8", "52.174.12.34", "13.233.12.1", "41.203.64.2"
+        ]
         for i in range(20):
             mode = random.choice(["normal", "evasion", "poison"])
             lip = random.choice(attack_ips)
