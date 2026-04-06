@@ -38,3 +38,18 @@ class Simulator:
             return self.generate_evasion(), "evasion"
         else:
             return self.generate_poison(), "poison"
+
+    def generate_extraction_probe(self, probe_type="boundary"):
+        if probe_type == "boundary":
+            # Systematic boundary probing: vary features near decision boundary
+            features = self.generate_normal()
+            for idx in self.continuous_indices[:8]:
+                features[idx] = random.uniform(-0.5, 0.5)
+            features[22] = random.uniform(100, 300)  # count near typical boundary
+            features[4] = random.uniform(500, 2000)  # src_bytes varied
+        else:
+            # Coverage attack: systematic feature-space sweep
+            features = [float(np.random.uniform(-1, 1)) for _ in range(41)]
+            features[4] = random.uniform(0, 10000)
+            features[22] = random.uniform(0, 500)
+        return features

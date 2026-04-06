@@ -17,7 +17,7 @@ const ModelHealth = ({ stats }) => {
   const handleRetrain = async () => {
     setIsRetraining(true);
     try {
-      await axios.post('http://localhost:8000/retrain');
+      await axios.post('/api/retrain');
     } catch (e) {
       console.error(e);
     }

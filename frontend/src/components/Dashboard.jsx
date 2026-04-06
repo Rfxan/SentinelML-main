@@ -3,8 +3,12 @@ import StatCard from './StatCard';
 import LogsPanel from './LogsPanel';
 import ThreatTable from './ThreatTable';
 import { Activity, ShieldAlert, Wifi } from 'lucide-react';
-import ThreatMeter from './ThreatMeter';
+import ThreatScoreCard from './ThreatScoreCard';
+import AccuracyDriftChart from './AccuracyDriftChart';
 import AttackChart from './AttackChart';
+import ModelHealth from './ModelHealth';
+import DriftAlerts from './DriftAlerts';
+import RateLimiterPanel from './RateLimiterPanel';
 
 const Dashboard = ({ data }) => {
   const { trafficFeed, modelStats, blockedIPs } = data;
@@ -51,10 +55,23 @@ const Dashboard = ({ data }) => {
   return (
     <div className="flex flex-col gap-6 w-full max-w-7xl mx-auto">
       {/* HERO COMPONENT */}
-      <ThreatMeter />
+      <ThreatScoreCard />
 
-      {/* ATTACK TRENDS CHART */}
-      <AttackChart />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 flex flex-col gap-6">
+          {/* ACCURACY TRENDS */}
+          <AccuracyDriftChart />
+
+          {/* ATTACK TRENDS CHART */}
+          <AttackChart />
+        </div>
+
+        <div className="flex flex-col gap-6">
+          <ModelHealth stats={modelStats} />
+          <DriftAlerts />
+          <RateLimiterPanel />
+        </div>
+      </div>
 
       {/* PANELS */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 w-full mt-2">

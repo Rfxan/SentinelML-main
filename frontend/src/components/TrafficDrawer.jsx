@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Network, Server, Shield, Activity, Fingerprint } from 'lucide-react';
+import { X, Network, Server, Shield, Activity, Fingerprint, ExternalLink } from 'lucide-react';
+import SHAPPanel from './SHAPPanel';
 
 const TrafficDrawer = ({ row, isOpen, onClose }) => {
+  const [showSHAP, setShowSHAP] = useState(false);
   const generateSynthetic = (ip) => {
     const hash = ip?.split('.').reduce((a, b) => a + parseInt(b), 0) || 50;
     const protocols = ['TCP', 'UDP', 'ICMP', 'HTTP'];
@@ -132,8 +134,35 @@ const TrafficDrawer = ({ row, isOpen, onClose }) => {
                   </div>
                 </div>
               </div>
+
+              {/* MITRE and Category Badges */}
+              <div className="flex flex-wrap gap-2">
+                {row.label_name && (
+                  <div className="px-3 py-1 bg-zinc-800 text-zinc-300 text-[10px] font-black uppercase tracking-widest rounded-lg border border-white/5">
+                    Category: {row.label_name}
+                  </div>
+                )}
+                {row.mitre_id && row.mitre_id !== 'N/A' && (
+                  <div className="px-3 py-1 bg-amber-500/10 text-amber-500 text-[10px] font-black uppercase tracking-widest rounded-lg border border-amber-500/20">
+                    MITRE {row.mitre_id}: {row.mitre_name}
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-4 border-t border-white/5 mt-auto">
+                <button 
+                  onClick={() => setShowSHAP(true)}
+                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/20"
+                >
+                  <ExternalLink size={14} /> VIEW SHAP EXPLANATION
+                </button>
+              </div>
             </div>
           </motion.div>
+          
+          <AnimatePresence>
+            {showSHAP && <SHAPPanel event={row} onClose={() => setShowSHAP(false)} />}
+          </AnimatePresence>
         </>
       )}
     </AnimatePresence>

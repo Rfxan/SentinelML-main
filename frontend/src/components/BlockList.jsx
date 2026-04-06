@@ -7,7 +7,7 @@ const BlockList = ({ ips }) => {
 
   const handleUnblock = async (ip) => {
     try {
-      await axios.delete(`http://localhost:8000/block-ip/${ip}`);
+      await axios.delete(`/api/block-ip/${ip}`);
     } catch (e) {
       console.error(e);
     }

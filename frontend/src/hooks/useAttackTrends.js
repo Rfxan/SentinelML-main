@@ -11,7 +11,7 @@ export function useAttackTrends() {
 
     const fetchFeed = async () => {
       try {
-        const url = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/traffic-feed`;
+        const url = `${import.meta.env.VITE_API_URL || '/api'}/traffic-feed`;
         const response = await fetch(url);
         const feed = await response.json();
         
