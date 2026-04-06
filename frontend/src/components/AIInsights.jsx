@@ -48,14 +48,14 @@ const AIInsights = ({ className }) => {
   };
 
   return (
-    <div className={`p-5 rounded-2xl bg-[#1A1F2B] border border-white/10 shadow-lg ${className}`}>
+    <div className={`p-5 rounded-2xl bg-white dark:bg-[#1A1F2B] border border-slate-200 dark:border-white/10 shadow-lg dark:shadow-none transition-colors duration-300 ${className}`}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <BrainCircuit className="w-6 h-6 text-indigo-400" />
-          <h2 className="text-lg font-bold text-gray-100">AI Intelligence Layer</h2>
+          <BrainCircuit className="w-6 h-6 text-indigo-500 dark:text-indigo-400" />
+          <h2 className="text-lg font-bold text-slate-900 dark:text-gray-100">AI Intelligence Layer</h2>
         </div>
         {!loading && !error && insights && (
-          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-semibold">
+          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-xs font-semibold transition-colors duration-300">
             {getThreatAssessmentIcon(insights.threat_assessment)}
             <span className={getThreatAssessmentColor(insights.threat_assessment)}>
               {insights.threat_assessment}
@@ -66,23 +66,23 @@ const AIInsights = ({ className }) => {
 
       {loading && !insights ? (
         <div className="flex flex-col items-center justify-center py-6">
-          <Loader2 className="w-8 h-8 text-indigo-400 animate-spin mb-2" />
-          <p className="text-sm text-gray-400">Analyzing threat patterns...</p>
+          <Loader2 className="w-8 h-8 text-indigo-500 dark:text-indigo-400 animate-spin mb-2" />
+          <p className="text-sm text-slate-500 dark:text-gray-400">Analyzing threat patterns...</p>
         </div>
       ) : error ? (
-        <div className="flex flex-col items-center justify-center py-6 text-gray-400">
+        <div className="flex flex-col items-center justify-center py-6 text-slate-500 dark:text-gray-400">
           <AlertTriangle className="w-8 h-8 text-yellow-500 mb-2" />
           <p className="text-sm">{error}</p>
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          <div className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-sm text-gray-300 leading-relaxed">
+          <div className="p-4 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-sm text-slate-700 dark:text-gray-300 leading-relaxed transition-colors duration-300">
             {insights?.summary}
           </div>
           
           <div className="flex items-center gap-3">
-            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Key Patterns:</span>
-            <span className="text-sm text-gray-200">{insights?.key_patterns}</span>
+            <span className="text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wide">Key Patterns:</span>
+            <span className="text-sm font-semibold text-slate-800 dark:text-gray-200">{insights?.key_patterns}</span>
           </div>
         </div>
       )}

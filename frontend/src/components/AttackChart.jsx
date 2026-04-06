@@ -24,16 +24,16 @@ const AttackChart = () => {
   };
 
   return (
-    <div className="glass-card p-6 rounded-2xl flex flex-col h-[400px] w-full bg-slate-900/50 border border-slate-700/50 shadow-xl overflow-hidden relative">
+    <div className="glass-card p-6 rounded-2xl flex flex-col h-[400px] w-full bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700/50 shadow-xl overflow-hidden relative transition-colors duration-300">
       <div className="flex justify-between items-center mb-4 z-10">
-        <h3 className="text-lg font-semibold text-slate-100">Live Attack Trends</h3>
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Live Attack Trends</h3>
         <div className="flex items-center space-x-2">
           <span className="relative flex h-3 w-3">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
           </span>
           <select 
-            className="bg-slate-800 text-xs text-slate-300 border border-slate-600 rounded px-2 py-1 outline-none"
+            className="bg-slate-50 dark:bg-slate-800 text-xs text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600 rounded px-2 py-1 outline-none transition-colors"
             value={windowSize}
             onChange={(e) => setWindowSize(Number(e.target.value))}
           >
@@ -60,18 +60,18 @@ const AttackChart = () => {
                 <stop offset="95%" stopColor="#a855f7" stopOpacity={0}/>
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid)" />
             <XAxis 
               dataKey="time" 
-              stroke="#94a3b8" 
-              tick={{fill: '#94a3b8', fontSize: 12}} 
+              stroke="var(--chart-text)" 
+              tick={{fill: 'var(--chart-text)', fontSize: 12}} 
               tickLine={false}
               axisLine={false}
               minTickGap={20}
             />
             <YAxis 
-              stroke="#94a3b8" 
-              tick={{fill: '#94a3b8', fontSize: 12}}
+              stroke="var(--chart-text)" 
+              tick={{fill: 'var(--chart-text)', fontSize: 12}}
               tickLine={false}
               axisLine={false}
               allowDecimals={false}
@@ -81,7 +81,7 @@ const AttackChart = () => {
               verticalAlign="top" 
               height={36}
               onClick={handleLegendClick}
-              wrapperStyle={{ cursor: 'pointer', fontSize: 13, color: '#e2e8f0', paddingBottom: '10px' }}
+              wrapperStyle={{ cursor: 'pointer', fontSize: 13, color: 'var(--chart-legend)', paddingBottom: '10px' }}
             />
             
             {!hiddenSeries.normal && (

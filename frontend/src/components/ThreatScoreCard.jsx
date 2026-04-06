@@ -45,7 +45,7 @@ const ThreatScoreCard = () => {
   const isCritical = scoreData.score >= 75;
 
   return (
-    <div className={`bg-zinc-900/60 border border-white/[0.05] rounded-3xl p-6 relative overflow-hidden transition-all duration-700 ${isCritical ? 'ring-2 ring-rose-500/30' : ''}`}>
+    <div className={`bg-white dark:bg-zinc-900/60 border border-slate-200 dark:border-white/[0.05] shadow-xl dark:shadow-none rounded-3xl p-6 relative overflow-hidden transition-all duration-700 ${isCritical ? 'ring-2 ring-rose-500/30' : ''}`}>
       {isCritical && (
         <div className="absolute inset-0 bg-rose-500/5 animate-pulse pointer-events-none" />
       )}
@@ -59,40 +59,40 @@ const ThreatScoreCard = () => {
            </div>
         </div>
 
-        <div className="h-0.5 w-full md:h-20 md:w-0.5 bg-white/5" />
+        <div className="h-0.5 w-full md:h-20 md:w-0.5 bg-slate-200 dark:bg-white/5 transition-colors" />
 
         <div className="flex-1 grid grid-cols-2 lg:grid-cols-4 gap-6">
            <div className="flex flex-col gap-1">
               <span className="text-[10px] font-black text-slate-500 tracking-wider uppercase flex items-center gap-2">
                 <Lock size={12} /> IP Blocks
               </span>
-              <span className="text-sm font-bold text-slate-200">System Strike</span>
+              <span className="text-sm font-bold text-slate-800 dark:text-slate-200">System Strike</span>
            </div>
            <div className="flex flex-col gap-1">
               <span className="text-[10px] font-black text-slate-500 tracking-wider uppercase flex items-center gap-2">
                 <Zap size={12} /> Evasion
               </span>
-              <span className="text-sm font-bold text-slate-200">Dynamic Risk</span>
+              <span className="text-sm font-bold text-slate-800 dark:text-slate-200">Dynamic Risk</span>
            </div>
            <div className="flex flex-col gap-1">
               <span className="text-[10px] font-black text-slate-500 tracking-wider uppercase flex items-center gap-2">
                 <ShieldAlert size={12} /> Poisoning
               </span>
-              <span className="text-sm font-bold text-slate-200">Training Integrity</span>
+              <span className="text-sm font-bold text-slate-800 dark:text-slate-200">Training Integrity</span>
            </div>
            <div className="flex flex-col gap-1">
               <span className="text-[10px] font-black text-slate-500 tracking-wider uppercase flex items-center gap-2">
                 <Activity size={12} /> Accuracy
               </span>
-              <span className="text-sm font-bold text-slate-200">XGBoost Drift</span>
+              <span className="text-sm font-bold text-slate-800 dark:text-slate-200">XGBoost Drift</span>
            </div>
         </div>
 
         <div className="hidden lg:flex flex-col items-end gap-2 shrink-0">
-           <div className="flex items-center gap-2 text-xs font-bold text-slate-400 p-3 bg-zinc-950/40 rounded-2xl border border-white/5">
-             <Info size={14} className="text-blue-400" /> COMPOSITE THREAT SCORE
+           <div className="flex items-center gap-2 text-xs font-bold text-slate-500 dark:text-slate-400 p-3 bg-slate-50 dark:bg-zinc-950/40 rounded-2xl border border-slate-200 dark:border-white/5 transition-colors">
+             <Info size={14} className="text-blue-500 dark:text-blue-400" /> COMPOSITE THREAT SCORE
            </div>
-           <p className="text-[10px] text-slate-600 font-mono tracking-tighter">V4.2 AUDIT ENGINE: SECURE</p>
+           <p className="text-[10px] text-slate-400 dark:text-slate-600 font-mono tracking-tighter">V4.2 AUDIT ENGINE: SECURE</p>
         </div>
       </div>
     </div>

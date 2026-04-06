@@ -19,13 +19,13 @@ const ThreatTable = ({ threats }) => {
   const getSeverityBadge = (severity) => {
     switch(severity?.toLowerCase()) {
       case 'high':
-        return <span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-zinc-800 text-white border border-zinc-600">High</span>;
+        return <span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-red-100 text-red-700 border border-red-200 dark:bg-zinc-800 dark:text-white dark:border-zinc-600">High</span>;
       case 'medium':
-        return <span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-zinc-800 text-zinc-300 border border-zinc-600">Medium</span>;
+        return <span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-orange-100 text-orange-700 border border-orange-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-600">Medium</span>;
       case 'low':
-        return <span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-zinc-900 text-zinc-400 border border-zinc-700">Low</span>;
+        return <span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200 dark:bg-zinc-900 dark:text-zinc-400 dark:border-zinc-700">Low</span>;
       default:
-        return <span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-zinc-800 text-white border border-zinc-600">High</span>;
+        return <span className="px-2.5 py-1 rounded-md text-xs font-semibold bg-red-100 text-red-700 border border-red-200 dark:bg-zinc-800 dark:text-white dark:border-zinc-600">High</span>;
     }
   };
 

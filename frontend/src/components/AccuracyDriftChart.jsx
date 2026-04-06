@@ -35,14 +35,14 @@ const AccuracyDriftChart = () => {
   }, []);
 
   if (loading && history.length === 0) return (
-    <div className="h-[400px] w-full bg-zinc-950/20 border border-white/5 rounded-3xl flex items-center justify-center text-slate-600 font-bold animate-pulse">
+    <div className="h-[400px] w-full bg-slate-50 dark:bg-zinc-950/20 border border-slate-200 dark:border-white/5 rounded-3xl flex items-center justify-center text-slate-400 dark:text-slate-600 font-bold animate-pulse">
       Loading History...
     </div>
   );
 
   if (history.length === 0) return (
-    <div className="h-[400px] w-full bg-zinc-950/20 border border-white/5 rounded-3xl flex flex-col items-center justify-center gap-4">
-      <div className="p-4 bg-zinc-900 border border-white/5 rounded-2xl text-slate-700">
+    <div className="h-[400px] w-full bg-slate-50 dark:bg-zinc-950/20 border border-slate-200 dark:border-white/5 rounded-3xl flex flex-col items-center justify-center gap-4 transition-colors duration-300">
+      <div className="p-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/5 rounded-2xl text-slate-300 dark:text-slate-700">
         <Activity size={32} />
       </div>
       <p className="text-slate-500 font-bold">Train or retrain the model to see accuracy history.</p>
@@ -50,18 +50,18 @@ const AccuracyDriftChart = () => {
   );
 
   return (
-    <div className="bg-zinc-900/60 border border-white/[0.05] rounded-3xl p-6 flex flex-col gap-6 animate-in fade-in duration-1000">
+    <div className="bg-white dark:bg-zinc-900/60 border border-slate-200 dark:border-white/[0.05] shadow-xl dark:shadow-none rounded-3xl p-6 flex flex-col gap-6 animate-in fade-in duration-1000 transition-colors duration-300">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="p-2.5 bg-blue-500/10 text-blue-400 rounded-xl">
+          <div className="p-2.5 bg-blue-500/10 text-blue-500 dark:text-blue-400 rounded-xl">
              <TrendingUp size={24} />
           </div>
           <div>
-            <h3 className="text-lg font-black text-white">Model Accuracy Drift</h3>
+            <h3 className="text-lg font-black text-slate-900 dark:text-white">Model Accuracy Drift</h3>
             <p className="text-slate-500 text-xs">Live accuracy and F1 score history across retrains.</p>
           </div>
         </div>
-        <div className="px-3 py-1 bg-zinc-900/80 border border-white/5 rounded-lg flex items-center gap-2">
+        <div className="px-3 py-1 bg-slate-50 dark:bg-zinc-900/80 border border-slate-200 dark:border-white/5 rounded-lg flex items-center gap-2">
            <div className="w-2 h-2 rounded-full bg-blue-500" />
            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Accuracy Monitoring: Active</span>
         </div>
@@ -70,10 +70,10 @@ const AccuracyDriftChart = () => {
       <div className="h-[300px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={history} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
             <XAxis 
               dataKey="timeStr" 
-              stroke="#475569" 
+              stroke="var(--chart-text)" 
               fontSize={10} 
               tickMargin={12}
               axisLine={false}
@@ -81,7 +81,7 @@ const AccuracyDriftChart = () => {
             />
             <YAxis 
               domain={[0, 1]} 
-              stroke="#475569" 
+              stroke="var(--chart-text)" 
               fontSize={10} 
               axisLine={false}
               tickLine={false}

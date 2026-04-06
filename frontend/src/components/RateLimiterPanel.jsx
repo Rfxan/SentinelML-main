@@ -29,7 +29,7 @@ const RateLimiterPanel = () => {
   const totalTracked = ips.length;
 
   return (
-    <div className="glass-card rounded-2xl p-6 border-white/[0.05] shadow-xl bg-white/50 dark:bg-black/20 flex flex-col h-full">
+    <div className="glass-card rounded-2xl p-6 border-slate-200 dark:border-white/[0.05] shadow-xl bg-white/50 dark:bg-black/20 flex flex-col h-full transition-colors duration-300">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-blue-500/10 rounded-xl border border-blue-500/20">

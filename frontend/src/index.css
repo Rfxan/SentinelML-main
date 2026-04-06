@@ -2,7 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
+:root {
+  --chart-text: #64748b;
+  --chart-grid: #e2e8f0;
+  --chart-legend: #475569;
+}
+
+.dark {
+  --chart-text: #94a3b8;
+  --chart-grid: #334155;
+  --chart-legend: #e2e8f0;
+}@layer base {
   body {
     @apply bg-slate-50 text-slate-900 antialiased min-h-screen overflow-x-hidden transition-colors duration-300;
     background: radial-gradient(circle at top, #f8fafc 0%, #f1f5f9 100%);
