@@ -93,6 +93,9 @@ class MLModel:
         if not os.path.exists(DATASET_FILE):
             self.download_dataset()
         
+        prev_accuracy = self.accuracy
+        prev_f1 = self.f1
+        
         df = pd.read_csv(DATASET_FILE, names=COLUMNS, header=None)
         df['label'] = df['label'].apply(self._map_label)
         
@@ -145,14 +148,15 @@ class MLModel:
         
         self.train_stats['accuracy'] = self.accuracy
         self.train_stats['f1'] = self.f1
-        self.train_stats['model_history'] = self.model_history
-        
+
         self.model_history.append({
             'ts': time.time(),
             'accuracy': self.accuracy,
             'f1': self.f1,
             'event': 'train'
         })
+
+        self.train_stats['model_history'] = self.model_history
         
         # Task 2: Model Versioning before overwrite
         if not os.path.exists(VERSION_DIR):
@@ -174,8 +178,8 @@ class MLModel:
                 manifest.append({
                     "version_id": version_id,
                     "timestamp": datetime.now().isoformat(),
-                    "accuracy": self.accuracy,
-                    "f1": self.f1
+                    "accuracy": prev_accuracy,
+                    "f1": prev_f1
                 })
                 
                 # Cleanup: keep only 5
@@ -222,7 +226,13 @@ class MLModel:
             shutil.copy2(os.path.join(VERSION_DIR, f"model_{version_id}.pkl"), MODEL_PATH)
             shutil.copy2(os.path.join(VERSION_DIR, f"scaler_{version_id}.pkl"), SCALER_PATH)
             shutil.copy2(os.path.join(VERSION_DIR, f"train_stats_{version_id}.pkl"), STATS_PATH)
-            return self.load()
+            self.load()
+            return {
+                "success": True,
+                "version_id": version_id,
+                "accuracy": self.accuracy,
+                "f1": self.f1
+            }
         except Exception as e:
             logger.error(f"Rollback failed: {e}")
             raise ValueError(f"Rollback failed: {e}")

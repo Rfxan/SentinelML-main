@@ -13,6 +13,16 @@ const BlockList = ({ ips }) => {
     }
   };
 
+  const handleUnblockAll = async () => {
+    try {
+      if(window.confirm('Are you sure you want to unblock all IPs?')) {
+        await axios.delete('/api/block-ip');
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   return (
     <div className="card flex flex-col h-full bg-rose-950/20 border-rose-900/30">
       <div className="p-4 border-b border-rose-900/50 flex justify-between items-center bg-rose-950/40 sticky top-0 z-10">
@@ -20,9 +30,20 @@ const BlockList = ({ ips }) => {
           <ShieldBan className="w-5 h-5 text-rose-500" />
           Active IP Blocks
         </h2>
-        <span className="text-xs font-mono px-2 py-1 bg-rose-900/60 rounded-md text-rose-200 border border-rose-800">
-          {ipList.length} blocked
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-mono px-2 py-1 bg-rose-900/60 rounded-md text-rose-200 border border-rose-800">
+            {ipList.length} blocked
+          </span>
+          {ipList.length > 0 && (
+            <button 
+              onClick={handleUnblockAll}
+              className="px-2 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 rounded text-xs font-semibold transition-colors border border-emerald-500/20 shadow-sm"
+              title="Unblock All IPs"
+            >
+              Unblock All
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
