@@ -2,6 +2,7 @@ import time
 import asyncio
 import os
 import uuid
+import random
 import numpy as np
 from typing import List, Optional
 from fastapi import FastAPI, HTTPException, Body
@@ -71,10 +72,36 @@ class SimulateRequest(BaseModel):
     mode: str
     count: Optional[int] = 1
 
+IP_POOL = [
+    "45.12.23.8",     # Europe
+    "103.21.244.1",   # Asia
+    "181.65.23.9",    # South America
+    "77.88.55.2",     # Russia
+    "8.8.8.8",        # USA
+    "52.174.12.34",   # Europe cloud
+    "13.233.12.1",    # India
+    "41.203.64.2"     # Africa
+]
+
+FALLBACK_COORDINATES = {
+    "45.12.23.8": {"country": "France", "city": "Paris", "lat": 48.85, "lng": 2.35},
+    "103.21.244.1": {"country": "Japan", "city": "Tokyo", "lat": 35.68, "lng": 139.76},
+    "181.65.23.9": {"country": "Brazil", "city": "Sao Paulo", "lat": -23.55, "lng": -46.63},
+    "77.88.55.2": {"country": "Russia", "city": "Moscow", "lat": 55.75, "lng": 37.61},
+    "8.8.8.8": {"country": "USA", "city": "San Francisco", "lat": 37.77, "lng": -122.41},
+    "52.174.12.34": {"country": "UK", "city": "London", "lat": 51.5, "lng": -0.12},
+    "13.233.12.1": {"country": "India", "city": "Mumbai", "lat": 19.07, "lng": 72.87},
+    "41.203.64.2": {"country": "Kenya", "city": "Nairobi", "lat": -1.29, "lng": 36.82}
+}
+
 # Geolocation Helper
 async def get_geo_info(ip: str):
     if ip == "127.0.0.1" or ip.startswith("192.168."):
         return {"country": "Local", "city": "Private Network", "lat": 0.0, "lng": 0.0}
+        
+    if ip in FALLBACK_COORDINATES:
+        return FALLBACK_COORDINATES[ip]
+        
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.get(f"http://ip-api.com/json/{ip}", timeout=2.0)
@@ -89,7 +116,9 @@ async def get_geo_info(ip: str):
                     }
     except Exception:
         pass
-    return {"country": "USA", "city": "Arlington", "lat": 38.87, "lng": -77.05}
+    
+    # Absolute fallback to valid coordinates
+    return {"country": "Unknown", "city": "Unknown", "lat": 38.87, "lng": -77.05}
 
 @app.on_event("startup")
 async def startup_event():
@@ -436,10 +465,11 @@ async def get_ai_insights():
 @app.post("/simulate")
 async def simulate(req: SimulateRequest):
     count = req.count or 1
-    blitz_ip = f"185.122.4.{np.random.randint(1, 255)}"
+    used_ips = []
 
     for _ in range(count):
-        ip = blitz_ip if req.mode in ("blitz", "extraction_blitz") else f"185.122.4.{np.random.randint(1, 255)}"
+        ip = random.choice(IP_POOL)
+        used_ips.append(ip)
 
         if req.mode == "normal":
             f = simulator.generate_normal()
@@ -470,4 +500,4 @@ async def simulate(req: SimulateRequest):
 
         await asyncio.sleep(0.05)
 
-    return {"status": "simulated", "count": count}
+    return {"status": "simulated", "count": count, "ips": used_ips}
