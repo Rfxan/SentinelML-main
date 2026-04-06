@@ -6,27 +6,28 @@ class Simulator:
         self.continuous_indices = [0, 4, 5, 9, 10, 11, 12, 13, 14, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
 
     def generate_normal(self):
-        features = [float(np.random.random() * 0.1) for _ in range(41)]
+        features = [0.0 for _ in range(41)]
         features[4] = random.uniform(100, 500) # src_bytes
         features[22] = random.uniform(1, 10) # count
         return features
 
     def generate_evasion(self):
         features = self.generate_normal()
-        # High activity + anomalous bytes
-        features[22] = 250.0 
-        features[4] = 9999.0
-        # Add perturbations
+        # High activity + massively anomalous bytes
+        features[22] = random.uniform(100.0, 300.0) 
+        features[4] = random.uniform(5000.0, 15000.0)
+        # BRUTAL perturbations to cross boundary
         for idx in self.continuous_indices:
-            if random.random() > 0.5:
-                features[idx] += random.choice([-1, 1]) * random.uniform(0.1, 0.3)
+            # Huge variance added to break ML assumption
+            features[idx] += random.choice([-1, 1]) * random.uniform(1.0, 5.0)
         return features
 
     def generate_poison(self):
-        # Malicious features but target normal label
+        # Brutal malicious features but targeting normal label to corrupt the model weights
         features = [0.0] * 41
-        features[22] = 500.0 # High count
+        features[22] = random.uniform(800.0, 2000.0) # Insanely High count
         features[24] = 1.0 # High serror_rate
+        features[4] = random.uniform(10000.0, 50000.0) # Massive data payload
         return features, 0 # features, flipped_label
 
     def generate_blitz(self):

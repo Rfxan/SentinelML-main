@@ -20,6 +20,7 @@ from integrity import store_model_hash, verify_model_hash, log_event, get_audit_
 from extractor_detector import ExtractionDetector
 from adversarial_attacker import AdversarialAttacker
 from rate_limiter import TrainRateLimiter
+import ai
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -378,6 +379,59 @@ async def get_audit():
 async def verify_integrity():
     ok = verify_model_hash(MODEL_PATH)
     return {"integrity_ok": ok, "model_hash": ok}
+
+@app.get("/ai-summary")
+async def get_ai_summary():
+    recent_events = list(traffic_feed)[:50]
+    summary = ai.generate_incident_summary(recent_events)
+    return {"summary": summary}
+
+@app.post("/ai-explain")
+async def get_ai_explain(payload: dict = Body(...)):
+    event_id = payload.get("event_id")
+    # In a real system, we'd query by ID. For now we just pass the event dict if provided,
+    # or find from feed.
+    event = payload.get("event")
+    if not event and event_id:
+        for e in traffic_feed:
+            if e["id"] == event_id:
+                event = e
+                break
+    
+    if not event:
+        return {"explanation": "Event not found or no event data provided."}
+        
+    explanation = ai.explain_event(event)
+    return {"explanation": explanation}
+
+@app.get("/ai-insights")
+async def get_ai_insights():
+    recent_events = list(traffic_feed)[:50]
+    summary = ai.generate_incident_summary(recent_events)
+    
+    # Calculate some threat assessment internally
+    total_events = len(recent_events)
+    attacks = sum(1 for e in recent_events if e.get("type") in ["attack", "evasion", "poison"])
+    
+    threat_assessment = "LOW"
+    if attacks > total_events * 0.5:
+        threat_assessment = "CRITICAL"
+    elif attacks > total_events * 0.2:
+        threat_assessment = "HIGH"
+    elif attacks > 0:
+        threat_assessment = "MEDIUM"
+        
+    key_patterns = "Normal operations"
+    if "attack" in [e.get("type") for e in recent_events]:
+        key_patterns = "Active malicious traffic detected"
+    if "evasion" in [e.get("type") for e in recent_events]:
+        key_patterns = "Sophisticated evasion attempts detected"
+        
+    return {
+        "summary": summary,
+        "key_patterns": key_patterns,
+        "threat_assessment": threat_assessment
+    }
 
 @app.post("/simulate")
 async def simulate(req: SimulateRequest):

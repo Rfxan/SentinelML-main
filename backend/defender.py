@@ -51,6 +51,11 @@ class Defender:
             outlier = self.iso_forest.predict(f)[0] == -1
         
         # Confidence mismatch check (label flipping attempt)
-        confidence_flip = bool(confidence > 0.5 and label != 0 and pred_label == 0)
+        # If the attacker says it's normal (0) but model sees obvious attack (1), or vice versa
+        confidence_flip = bool(confidence > 0.4 and label != pred_label)
         
-        return bool(outlier or confidence_flip)
+        # Brutal check: extreme anomalies in data shape
+        max_val = np.max(np.abs(f))
+        extreme_outlier = max_val > 2000.0
+        
+        return bool(outlier or confidence_flip or extreme_outlier)

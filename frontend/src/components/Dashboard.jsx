@@ -9,6 +9,7 @@ import AttackChart from './AttackChart';
 import ModelHealth from './ModelHealth';
 import DriftAlerts from './DriftAlerts';
 import RateLimiterPanel from './RateLimiterPanel';
+import AIInsights from './AIInsights';
 
 const Dashboard = ({ data }) => {
   const { trafficFeed, modelStats, blockedIPs } = data;
@@ -67,6 +68,7 @@ const Dashboard = ({ data }) => {
         </div>
 
         <div className="flex flex-col gap-6">
+          <AIInsights />
           <ModelHealth stats={modelStats} />
           <DriftAlerts />
           <RateLimiterPanel />

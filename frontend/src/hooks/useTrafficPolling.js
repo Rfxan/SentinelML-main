@@ -4,9 +4,11 @@ import axios from 'axios';
 const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
 export const useTrafficPolling = () => {
-  const [trafficFeed, setTrafficFeed] = useState([]);
-  const [modelStats, setModelStats] = useState(null);
-  const [blockedIPs, setBlockedIPs] = useState({});
+  const [data, setData] = useState({
+    trafficFeed: [],
+    modelStats: null,
+    blockedIPs: {}
+  });
   const [isLive, setIsLive] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -21,9 +23,11 @@ export const useTrafficPolling = () => {
           axios.get(`${API_BASE}/blocked-ips`)
         ]);
         
-        setTrafficFeed(feedRes.data);
-        setModelStats(statsRes.data);
-        setBlockedIPs(blockedRes.data);
+        setData({
+          trafficFeed: feedRes.data,
+          modelStats: statsRes.data,
+          blockedIPs: blockedRes.data
+        });
         setIsLive(true);
       } catch (err) {
         console.error("Failed to connect to backend:", err);
@@ -41,5 +45,11 @@ export const useTrafficPolling = () => {
     };
   }, []);
 
-  return { trafficFeed, modelStats, blockedIPs, isLive, isLoading };
+  return { 
+    trafficFeed: data.trafficFeed, 
+    modelStats: data.modelStats, 
+    blockedIPs: data.blockedIPs, 
+    isLive, 
+    isLoading 
+  };
 };
