@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 
 const POLLING_INTERVAL = 2500;
 
-export function useAttackTrends() {
+export function useAttackTrends(windowSeconds = 15) {
   const [data, setData] = useState([]);
 
   useEffect(() => {
@@ -17,25 +17,21 @@ export function useAttackTrends() {
         
         if (!isSubscribed) return;
 
-        // Ensure we aggregate the last 10 minutes properly based on local time or relative labels.
-        // We will use HH:MM.
         const now = new Date();
         const buckets = {};
         
-        // Initialize buckets for the last 10 minutes
-        for (let i = 9; i >= 0; i--) {
-          const d = new Date(now.getTime() - i * 60000);
-          const timeKey = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+        for (let i = windowSeconds - 1; i >= 0; i--) {
+          const d = new Date(now.getTime() - i * 1000);
+          const timeKey = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
           buckets[timeKey] = { time: timeKey, normal: 0, attacks: 0, adversarial: 0 };
         }
 
-        const tenMinutesAgo = new Date(now.getTime() - 10 * 60000);
+        const cutoff = new Date(now.getTime() - windowSeconds * 1000);
 
-        // Aggregate events
         feed.forEach(event => {
           const eventTime = new Date(event.timestamp.replace(' ', 'T'));
-          if (eventTime >= tenMinutesAgo) {
-            const timeKey = `${String(eventTime.getHours()).padStart(2, '0')}:${String(eventTime.getMinutes()).padStart(2, '0')}`;
+          if (eventTime >= cutoff) {
+            const timeKey = `${String(eventTime.getHours()).padStart(2, '0')}:${String(eventTime.getMinutes()).padStart(2, '0')}:${String(eventTime.getSeconds()).padStart(2, '0')}`;
             if (buckets[timeKey]) {
               if (event.type === 'normal' || event.type === 'train') {
                 buckets[timeKey].normal++;

@@ -4,7 +4,8 @@ import { useAttackTrends } from '../hooks/useAttackTrends';
 import CustomTooltip from './CustomTooltip';
 
 const AttackChart = () => {
-  const data = useAttackTrends();
+  const [windowSize, setWindowSize] = useState(15);
+  const data = useAttackTrends(windowSize);
   const [hiddenSeries, setHiddenSeries] = useState({
     normal: false,
     attacks: false,
@@ -31,7 +32,15 @@ const AttackChart = () => {
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
           </span>
-          <span className="text-xs text-slate-400 font-medium">Real-time (10m window)</span>
+          <select 
+            className="bg-slate-800 text-xs text-slate-300 border border-slate-600 rounded px-2 py-1 outline-none"
+            value={windowSize}
+            onChange={(e) => setWindowSize(Number(e.target.value))}
+          >
+            <option value={15}>15s window</option>
+            <option value={30}>30s window</option>
+            <option value={60}>1m window</option>
+          </select>
         </div>
       </div>
       <div className="flex-1 min-h-[300px] w-full z-10 -ml-4">

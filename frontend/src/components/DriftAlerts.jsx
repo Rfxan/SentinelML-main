@@ -11,7 +11,7 @@ const DriftAlerts = () => {
       const response = await fetch('/api/drift-alerts');
       if (response.ok) {
         const data = await response.json();
-        setAlerts(data.reverse()); // Newest first
+        setAlerts(data);
       }
     } catch (err) {
       console.error("Failed to fetch drift alerts:", err);
@@ -72,7 +72,7 @@ const DriftAlerts = () => {
                 </span>
                 <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-1 font-medium">
                   <Clock size={12} />
-                  {new Date(alert.timestamp * 1000).toLocaleString()}
+                  {new Date((alert.ts || alert.timestamp) * 1000).toLocaleString()}
                 </div>
               </div>
             </div>
