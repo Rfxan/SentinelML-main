@@ -9,15 +9,17 @@ import {
   HeartPulse,
   Eye,
   History,
-  Terminal
+  Terminal,
+  Fingerprint
 } from 'lucide-react';
 
 
 const navItems = [
   { name: 'Dashboards', icon: LayoutDashboard },
+  { name: 'Incidents', icon: ShieldAlert },
+  { name: 'Clustering', icon: Fingerprint },
   { name: 'Traffic', icon: Activity },
   { name: 'Alerts', icon: Bell },
-  { name: 'Threat', icon: ShieldAlert },
   { name: 'Attack', icon: Target },
   { name: 'Block List', icon: Ban },
   { name: 'Health', icon: HeartPulse },

@@ -13,6 +13,8 @@ import FlashOverlay from './components/FlashOverlay';
 import ToastContainer from './components/ToastContainer';
 import AttackChart from './components/AttackChart';
 import AdversarialSimulator from './components/AdversarialSimulator';
+import IncidentDashboard from './components/IncidentDashboard';
+import ClusterAnalysis from './components/ClusterAnalysis';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -68,6 +70,10 @@ function MainApp() {
         <main className="flex-1 p-8 relative flex flex-col">
           {activeItem === 'Dashboards' ? (
             <Dashboard data={globalDataStr} />
+          ) : activeItem === 'Incidents' ? (
+            <IncidentDashboard />
+          ) : activeItem === 'Clustering' ? (
+            <ClusterAnalysis />
           ) : activeItem === 'Traffic' ? (
             <TrafficFeed />
           ) : activeItem === 'Alerts' ? (

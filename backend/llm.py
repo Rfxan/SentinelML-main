@@ -27,7 +27,7 @@ def generate_with_groq(prompt: str, max_timeout: float = 3.0) -> str:
     trimmed_prompt = prompt[:4000]
     
     payload = {
-        "model": "llama3-8b-8192",
+        "model": "llama-3.1-8b-instant",
         "messages": [
             {"role": "system", "content": "You are a cybersecurity analyst."},
             {"role": "user", "content": trimmed_prompt}

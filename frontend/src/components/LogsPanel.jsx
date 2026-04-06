@@ -53,8 +53,13 @@ const LogsPanel = ({ logs }) => {
                 <span className={`font-semibold shrink-0 uppercase tracking-wider ${getLogColor(log.type)}`}>
                   {log.type || 'UNKNOWN'}
                 </span>
-                <span className="text-slate-700 dark:text-slate-300 break-all">
-                  {log.source_ip || log.ip} - {log.details || 'No details provided'}
+                <span className="text-slate-700 dark:text-slate-300 break-all flex items-center gap-2">
+                  <span>{log.source_ip || log.ip} - {log.details || 'No details provided'}</span>
+                  {log.mitre_id && log.mitre_id !== 'N/A' && (
+                    <span className="px-1.5 py-0.5 text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded uppercase tracking-wider">
+                      MITRE {log.mitre_id}
+                    </span>
+                  )}
                 </span>
               </div>
             ))}

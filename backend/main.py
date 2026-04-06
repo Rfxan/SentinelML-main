@@ -22,6 +22,8 @@ from extractor_detector import ExtractionDetector
 from adversarial_attacker import AdversarialAttacker
 from rate_limiter import TrainRateLimiter
 import ai
+import incident_engine
+import cluster_engine
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -231,8 +233,10 @@ async def predict(req: PredictRequest):
         "confidence": confidence,
         "evasion_score": evasion_risk,
         "status": "blocked" if is_blocked else "allowed",
-        "geo": geo
+        "geo": geo,
+        "features": req.features
     }
+    incident_engine.update(event)
     traffic_feed.appendleft(event)
     log_event({"event": "predict", "ip": req.ip, "type": event_type, "label": pred_label})
 
@@ -275,9 +279,11 @@ async def train_endpoint(req: TrainRequest):
         "ip": req.ip,
         "type": "poison" if is_poisoning else "train",
         "confidence": 1.0,
-        "status": "blocked" if is_blocked else "clean",
-        "geo": geo
+        "status": "blocked" if is_blocked else "allowed",
+        "geo": geo,
+        "features": req.features
     }
+    incident_engine.update(event)
     traffic_feed.appendleft(event)
     log_event({"event": "train", "ip": req.ip, "is_poisoning": is_poisoning})
 
@@ -303,7 +309,8 @@ async def get_siem_log():
             "event_type": e.get("type"),
             "mitre_id": e.get("mitre_id", "N/A"),
             "mitre_name": e.get("mitre_name", ""),
-            "severity": "HIGH" if e.get("type") in ["attack", "evasion"] else "INFO",
+            "incident_id": e.get("incident_id", "N/A"),
+            "severity": e.get("severity", "info").upper(),
             "status": e.get("status"),
         }
         for e in entries
@@ -312,6 +319,7 @@ async def get_siem_log():
 @app.post("/reset")
 async def reset_system():
     traffic_feed.clear()
+    incident_engine.reset()
     accepted_training_samples.clear()
     blocker.blocked_ips.clear()
     blocker.strikes.clear()
@@ -568,3 +576,26 @@ async def simulate(req: SimulateRequest):
         await asyncio.sleep(0.05)
 
     return {"status": "simulated", "count": count, "ips": used_ips}
+
+@app.get("/incidents")
+async def get_incidents():
+    return incident_engine.get_active_incidents()
+
+@app.get("/incidents/{incident_id}")
+async def get_incident_by_id(incident_id: str):
+    inc = incident_engine.get_incident(incident_id)
+    if not inc:
+        raise HTTPException(404, detail="Incident not found")
+    return inc
+
+@app.get("/incident-summary")
+async def get_incident_summary():
+    return incident_engine.get_summary()
+
+@app.get("/clusters")
+async def get_clusters():
+    # Only cluster the last 500 events to maintain performance
+    events = [e for e in traffic_feed if "features" in e][:500]
+    if not events:
+        return {"clusters": [], "outliers": 0}
+    return cluster_engine.perform_clustering(events)

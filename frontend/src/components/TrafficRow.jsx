@@ -54,6 +54,15 @@ const TrafficRow = ({ row, onClick }) => {
       <td className="p-4 whitespace-nowrap text-sm font-bold uppercase tracking-wider">
         {type}
       </td>
+      <td className="p-4 whitespace-nowrap text-xs font-bold text-slate-500 dark:text-slate-400">
+        {row.mitre_id && row.mitre_id !== 'N/A' ? (
+          <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+            {row.mitre_id}
+          </span>
+        ) : (
+          <span className="opacity-50">-</span>
+        )}
+      </td>
       <td className="p-4 whitespace-nowrap text-sm font-mono">
         {(row.confidence * 100).toFixed(1)}%
       </td>

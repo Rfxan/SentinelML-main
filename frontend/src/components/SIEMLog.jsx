@@ -33,36 +33,43 @@ const SIEMLog = () => {
           <thead className="text-xs text-slate-400 uppercase sticky top-0 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 z-10 shadow-sm">
             <tr>
               <th className="py-3 px-4">Timestamp</th>
+              <th className="py-3 px-4">Incident ID</th>
               <th className="py-3 px-4">Source IP</th>
               <th className="py-3 px-4">Event</th>
               <th className="py-3 px-4">MITRE ID</th>
-              <th className="py-3 px-4">Severity</th>
+              <th className="py-3 px-4 text-center">Severity</th>
               <th className="py-3 px-4">Status</th>
             </tr>
           </thead>
           <tbody>
-            {logs.map((log, i) => (
-              <tr key={i} className="border-b border-slate-800/50 hover:bg-slate-900/50 transition-colors">
-                <td className="py-3 px-4 whitespace-nowrap text-slate-300">{log.timestamp}</td>
-                <td className="py-3 px-4 text-blue-400">{log.source_ip}</td>
-                <td className="py-3 px-4 text-slate-300 uppercase">{log.event_type}</td>
-                <td className="py-3 px-4 text-amber-500 font-bold">{log.mitre_id}</td>
-                <td className="py-3 px-4">
-                  <span className={`px-2 py-1 rounded text-xs font-bold inline-block shadow-sm ${
-                    log.severity === 'HIGH' 
-                      ? 'bg-rose-500/20 text-rose-500 border border-rose-500/30' 
-                      : 'bg-slate-500/20 text-slate-400 border border-slate-500/30'
-                  }`}>
-                    {log.severity}
-                  </span>
-                </td>
-                <td className="py-3 px-4 uppercase font-semibold text-slate-300">
-                  {log.status === 'blocked' ? <span className="text-rose-500">BLOCKED</span> : 
-                   log.status === 'allowed' ? <span className="text-emerald-500">ALLOWED</span> : 
-                   log.status === 'rejected' ? <span className="text-purple-500">REJECTED</span> : log.status}
-                </td>
-              </tr>
-            ))}
+            {logs.map((log, i) => {
+              const sev = log.severity?.toLowerCase();
+              const sevClass = 
+                sev === 'critical' ? 'bg-rose-500/20 text-rose-500 border-rose-500/30' :
+                sev === 'high' ? 'bg-orange-500/20 text-orange-500 border-orange-500/30' :
+                sev === 'medium' ? 'bg-amber-500/20 text-amber-500 border-amber-500/30' :
+                'bg-emerald-500/20 text-emerald-500 border-emerald-500/30';
+
+              return (
+                <tr key={i} className="border-b border-slate-800/50 hover:bg-slate-900/50 transition-colors">
+                  <td className="py-3 px-4 whitespace-nowrap text-slate-400 text-xs font-mono">{log.timestamp}</td>
+                  <td className="py-3 px-4 text-emerald-500 font-mono text-xs">{log.incident_id}</td>
+                  <td className="py-3 px-4 text-blue-400 font-medium">{log.source_ip}</td>
+                  <td className="py-3 px-4 text-slate-300 uppercase text-xs font-bold">{log.event_type}</td>
+                  <td className="py-3 px-4 text-amber-500 font-mono text-xs">{log.mitre_id}</td>
+                  <td className="py-3 px-4 text-center">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold inline-block border ${sevClass}`}>
+                      {log.severity}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4">
+                    {log.status === 'blocked' ? <span className="text-rose-500 text-[10px] font-bold uppercase tracking-tighter">● BLOCKED</span> : 
+                     log.status === 'allowed' ? <span className="text-emerald-500 text-[10px] font-bold uppercase tracking-tighter">● ALLOWED</span> : 
+                     <span className="text-slate-500 text-[10px] font-bold uppercase tracking-tighter">● {log.status}</span>}
+                  </td>
+                </tr>
+              );
+            })}
             {logs.length === 0 && (
               <tr>
                 <td colSpan="6" className="py-8 text-center text-slate-500">No events recorded. Waiting for stream...</td>
