@@ -22,9 +22,35 @@ from extractor_detector import ExtractionDetector
 from adversarial_attacker import AdversarialAttacker
 from rate_limiter import TrainRateLimiter
 import ai
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Telegram Push Notifications
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
+
+async def send_telegram_alert(message: str):
+    """Send a push notification via Telegram Bot API."""
+    if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
+        return
+    try:
+        async with httpx.AsyncClient() as client:
+            await client.post(
+                f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
+                json={
+                    "chat_id": TELEGRAM_CHAT_ID,
+                    "text": message,
+                    "parse_mode": "Markdown"
+                },
+                timeout=5
+            )
+    except Exception as e:
+        logger.warning(f"Telegram alert failed: {e}")
 
 app = FastAPI(title="SentinelML Backend")
 
@@ -159,8 +185,17 @@ async def predict(req: PredictRequest):
     # 3. Extraction detection + honeypot
     extraction_detector.record_query(req.ip, req.features, pred_label, confidence)
     is_honeypot = extraction_detector.is_honeypot(req.ip)
+    extraction_status = extraction_detector.get_status()
+    extraction_risk = extraction_status.get("risk_score", 0)
     if is_honeypot:
         pred_label, confidence = extraction_detector.generate_poisoned_response(pred_label, confidence)
+        await send_telegram_alert(
+            f"🍯 *Model Extraction Detected!*\n"
+            f"IP: `{req.ip}`\n"
+            f"Risk Score: `{extraction_risk}%`\n"
+            f"Action: Honeypot activated — poisoned response sent\n"
+            f"MITRE: `T1588` — Obtain Capabilities"
+        )
 
     # 4. Blocker
     is_attack = pred_label != 0
@@ -170,6 +205,16 @@ async def predict(req: PredictRequest):
     # MITRE tagging
     mitre = get_mitre_tag(pred_label)
     label_name = get_label_name(pred_label)
+
+    # Telegram alert for attacks
+    if is_attack:
+        await send_telegram_alert(
+            f"⚔️ *MITRE ATT&CK Alert*\n"
+            f"Technique: `{mitre['id']}` — {mitre['name']}\n"
+            f"Tactic: `{mitre['tactic']}`\n"
+            f"IP: `{req.ip}` | Confidence: `{round(confidence * 100, 1)}%`\n"
+            f"Status: {'🔴 BLOCKED' if is_blocked else '🟡 FLAGGED'}"
+        )
 
     geo = await get_geo_info(req.ip)
     event_type = "attack" if is_attack else "normal"
@@ -247,6 +292,22 @@ async def train_endpoint(req: TrainRequest):
 @app.get("/health")
 async def health_check():
     return {"status": "ok"}
+
+@app.get("/siem-log")
+async def get_siem_log():
+    entries = list(traffic_feed)[:100]
+    return [
+        {
+            "timestamp": e.get("timestamp"),
+            "source_ip": e.get("ip"),
+            "event_type": e.get("type"),
+            "mitre_id": e.get("mitre_id", "N/A"),
+            "mitre_name": e.get("mitre_name", ""),
+            "severity": "HIGH" if e.get("type") in ["attack", "evasion"] else "INFO",
+            "status": e.get("status"),
+        }
+        for e in entries
+    ]
 
 @app.post("/reset")
 async def reset_system():
@@ -330,6 +391,12 @@ async def retrain():
     drift = model.check_drift(prev_accuracy, prev_f1)
     if drift["drifted"]:
         log_event({"event": "accuracy_drift_alert", **drift})
+        await send_telegram_alert(
+            f"📉 *Model Drift Alert — SentinelML SIEM*\n"
+            f"Accuracy dropped: `{round(prev_accuracy * 100, 2)}%` → `{round(model.accuracy * 100, 2)}%`\n"
+            f"F1 Score: `{round(prev_f1, 4)}` → `{round(model.f1, 4)}`\n"
+            f"⚠️ Investigate model integrity immediately."
+        )
         
     log_event({"event": "retrain", "accuracy": model.accuracy, "f1": model.f1})
     return {

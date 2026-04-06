@@ -82,6 +82,15 @@ const AlertCard = ({ alert, index }) => {
           <div className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></div>
           <span>Confidence: <span className="font-semibold text-slate-800 dark:text-slate-100">{(alert.confidence * 100).toFixed(1)}%</span></span>
         </div>
+
+        {alert.mitre_id && alert.mitre_id !== 'N/A' && (
+          <div className="mt-2 flex items-center gap-2">
+            <span className="text-[10px] font-black bg-amber-500/20 text-amber-500 border border-amber-500/30 px-2 py-0.5 rounded uppercase tracking-wider">
+              MITRE {alert.mitre_id}
+            </span>
+            <span className="text-xs text-slate-500 dark:text-slate-400">{alert.mitre_name}</span>
+          </div>
+        )}
       </div>
 
       <div className="shrink-0 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-medium">

@@ -6,6 +6,7 @@ import AlertHistory from './components/AlertHistory';
 import TrafficFeed from './components/TrafficFeed';
 import ExtractionRadar from './components/ExtractionRadar';
 import ModelVersions from './components/ModelVersions';
+import SIEMLog from './components/SIEMLog';
 import { default as EmptyState } from './components/EmptyState';
 import { AlertProvider, useAlerts } from './hooks/useAlerts';
 import FlashOverlay from './components/FlashOverlay';
@@ -86,6 +87,8 @@ function MainApp() {
             <div className="flex flex-col gap-6 w-full max-w-7xl mx-auto h-full">
               <ModelVersions />
             </div>
+          ) : activeItem === 'SIEM Log' ? (
+            <SIEMLog />
           ) : (
             <div className="flex-1 glass-card flex items-center justify-center min-h-[60vh] mt-4">
               <EmptyState 
