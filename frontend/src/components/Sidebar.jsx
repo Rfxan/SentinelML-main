@@ -8,8 +8,10 @@ import {
   Ban, 
   HeartPulse,
   Eye,
-  History
+  History,
+  Terminal
 } from 'lucide-react';
+
 
 const navItems = [
   { name: 'Dashboards', icon: LayoutDashboard },
@@ -21,7 +23,9 @@ const navItems = [
   { name: 'Health', icon: HeartPulse },
   { name: 'Extraction', icon: Eye },
   { name: 'Versions', icon: History },
+  { name: 'SIEM Log', icon: Terminal },
 ];
+
 
 const Sidebar = ({ activeItem, setActiveItem }) => {
 
