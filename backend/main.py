@@ -252,6 +252,11 @@ async def unblock_ip(ip: str):
     success = blocker.unblock_ip(ip)
     return {"status": "success" if success else "not_found"}
 
+@app.delete("/block-ip")
+async def unblock_all_ips():
+    success = blocker.unblock_all()
+    return {"status": "success"}
+
 @app.get("/train-rate-status")
 async def get_train_rate_status():
     return train_rate_limiter.get_status()
