@@ -1,91 +1,85 @@
 import React from 'react';
-import axios from 'axios';
-import { ShieldBan, Unlock } from 'lucide-react';
+import { useBlockedIPs } from '../hooks/useBlockedIPs';
+import ThreatCard from './ThreatCard';
+import BlockMap from './BlockMap';
+import { ShieldX, Search } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-const BlockList = ({ ips }) => {
-  const ipList = Object.values(ips || {}).sort((a, b) => b.blocked_at - a.blocked_at);
-
-  const handleUnblock = async (ip) => {
-    try {
-      await axios.delete(`/api/block-ip/${ip}`);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const handleUnblockAll = async () => {
-    try {
-      if(window.confirm('Are you sure you want to unblock all IPs?')) {
-        await axios.delete('/api/block-ip');
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
+const BlockList = () => {
+  const { blockedIPs, geoDataMap, newlyBlocked, removeIPGlobally } = useBlockedIPs();
 
   return (
-    <div className="card flex flex-col h-full bg-rose-950/20 border-rose-900/30">
-      <div className="p-4 border-b border-rose-900/50 flex justify-between items-center bg-rose-950/40 sticky top-0 z-10">
-        <h2 className="text-lg font-semibold flex items-center gap-2 text-rose-300">
-          <ShieldBan className="w-5 h-5 text-rose-500" />
-          Active IP Blocks
-        </h2>
+    <div className="flex flex-col gap-6 w-full max-w-7xl mx-auto h-full animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-red-500/10 text-red-500 rounded-2xl border border-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.15)]">
+            <ShieldX size={28} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight transition-colors">Blocked Threats</h1>
+            <p className="text-slate-500 dark:text-slate-400 text-sm transition-colors">IPs actively contained and verified by neural network.</p>
+          </div>
+        </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs font-mono px-2 py-1 bg-rose-900/60 rounded-md text-rose-200 border border-rose-800">
-            {ipList.length} blocked
-          </span>
-          {ipList.length > 0 && (
-            <button 
-              onClick={handleUnblockAll}
-              className="px-2 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 rounded text-xs font-semibold transition-colors border border-emerald-500/20 shadow-sm"
-              title="Unblock All IPs"
-            >
-              Unblock All
-            </button>
-          )}
+          {/* Decorative stats */}
+          <div className="px-4 py-2 bg-white dark:bg-[#1A1F2B] border border-slate-200 dark:border-white/10 rounded-xl shadow-lg dark:shadow-none flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+            <span className="text-xs font-bold text-slate-900 dark:text-white">{blockedIPs.length} Active Blocks</span>
+          </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4">
-        {ipList.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-rose-400/50 opacity-70">
-            <ShieldBan className="w-12 h-12 mb-2 stroke-[1.5]" />
-            <p className="text-sm">No IPs currently blocked</p>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 min-h-[600px]">
+        {/* Left Column: Cards */}
+        <div className="flex flex-col bg-white dark:bg-[#1A1F2B] border border-slate-200 dark:border-white/10 rounded-2xl shadow-xl dark:shadow-none overflow-hidden transition-colors">
+          <div className="p-4 border-b border-slate-200 dark:border-white/10 flex justify-between items-center bg-slate-50 dark:bg-transparent transition-colors">
+            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Mitigated Sources</h3>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search IP..."
+                className="pl-8 pr-3 py-1.5 text-xs bg-white dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-lg text-slate-800 dark:text-white focus:outline-none focus:border-red-500/50 transition-colors w-48"
+              />
+            </div>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-3">
-            {ipList.map((entry, idx) => {
-              const isNewest = idx === 0;
-              return (
-                <div 
-                  key={entry.ip} 
-                  className={`bg-slate-800/80 border ${isNewest ? 'border-rose-500 pulse-border-red relative overflow-hidden' : 'border-slate-700/50'} rounded-lg p-3 group transition-all hover:bg-slate-800 flex justify-between items-center`}
+
+          <div className="p-4 flex-1 overflow-y-auto custom-scrollbar">
+            <AnimatePresence>
+              {blockedIPs.length === 0 ? (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="h-full flex flex-col items-center justify-center p-10 text-center"
                 >
-                  {isNewest && <div className="absolute top-0 left-0 w-1 h-full bg-rose-500 rounded-l-lg"></div>}
-                  <div className="pl-2">
-                    <div className="font-mono font-medium text-slate-200">{entry.ip}</div>
-                    <div className="text-xs text-rose-400 mt-0.5">{entry.reason}</div>
-                    <div className="flex gap-2 mt-2">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-700">
-                        {entry.strike_count} strikes
-                      </span>
-                      <span className="text-[10px] uppercase font-medium text-slate-500 flex items-center">
-                        {new Date(entry.blocked_at * 1000).toLocaleTimeString()}
-                      </span>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => handleUnblock(entry.ip)}
-                    className="p-2 rounded-full hover:bg-emerald-500/20 text-emerald-500/70 hover:text-emerald-400 transition-colors cursor-pointer"
-                    title="Unblock IP"
-                  >
-                    <Unlock className="w-4 h-4" />
-                  </button>
+                  <ShieldX className="w-12 h-12 text-slate-300 dark:text-slate-700 mb-4" />
+                  <p className="text-slate-500 dark:text-slate-400 font-medium">No IPs currently blocked.</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Network is operating cleanly.</p>
+                </motion.div>
+              ) : (
+                <div className="flex flex-col gap-4">
+                  {blockedIPs.map(b => (
+                    <ThreatCard
+                      key={b.ip}
+                      ipData={b}
+                      isNew={newlyBlocked.has(b.ip)}
+                      onUnblock={removeIPGlobally}
+                    />
+                  ))}
                 </div>
-              );
-            })}
+              )}
+            </AnimatePresence>
           </div>
-        )}
+        </div>
+
+        {/* Right Column: World Map */}
+        <div className="flex flex-col">
+          <BlockMap
+            blockedIPs={blockedIPs}
+            geoDataMap={geoDataMap}
+            newlyBlocked={newlyBlocked}
+          />
+        </div>
       </div>
     </div>
   );

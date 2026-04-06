@@ -13,37 +13,44 @@ const Needle = ({ value, cx, cy, radius }) => {
 
   // The needle geometry
   return (
-    <motion.g
-      initial={{ rotate: -90 }}
-      animate={{ rotate: angle }}
-      transition={{ 
-        type: "spring", 
-        stiffness: 60, 
-        damping: 15, 
-        mass: 1 
-      }}
-      style={{ originX: `${cx}px`, originY: `${cy}px` }}
-    >
-      <circle cx={cx} cy={cy} r={12} fill="#334155" />
-      <circle cx={cx} cy={cy} r={6} fill="#e2e8f0" />
-      <path
-        d={`M ${cx - 6} ${cy} L ${cx} ${cy - radius + 20} L ${cx + 6} ${cy} Z`}
-        fill="#e2e8f0"
-      />
-      <filter id="glow">
-        <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-        <feMerge>
-          <feMergeNode in="coloredBlur"/>
-          <feMergeNode in="SourceGraphic"/>
-        </feMerge>
-      </filter>
-      {/* Optional glow layer */}
-      <path
-        d={`M ${cx - 2} ${cy} L ${cx} ${cy - radius + 22} L ${cx + 2} ${cy} Z`}
-        fill={value > 70 ? "#ef4444" : value > 30 ? "#eab308" : "#22c55e"}
-        filter="url(#glow)"
-      />
-    </motion.g>
+    <>
+      <defs>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+          <feMerge>
+            <feMergeNode in="coloredBlur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+      <motion.g
+        initial={{ rotate: -90 }}
+        animate={{ rotate: angle }}
+        transition={{ 
+          type: "spring", 
+          stiffness: 60, 
+          damping: 15, 
+          mass: 1 
+        }}
+        style={{ originX: `${cx}px`, originY: `${cy}px` }}
+      >
+        <circle cx={cx} cy={cy} r={12} className="fill-slate-900 dark:fill-slate-700" />
+        <circle cx={cx} cy={cy} r={6} className="fill-slate-500 dark:fill-slate-300" />
+        
+        {/* Main Needle Body */}
+        <path
+          d={`M ${cx - 6} ${cy} L ${cx} ${cy - radius + 20} L ${cx + 6} ${cy} Z`}
+          className="fill-slate-700 dark:fill-slate-300"
+        />
+        
+        {/* Optional glow layer */}
+        <path
+          d={`M ${cx - 2} ${cy} L ${cx} ${cy - radius + 22} L ${cx + 2} ${cy} Z`}
+          fill={value > 70 ? "#ef4444" : value > 30 ? "#eab308" : "#22c55e"}
+          filter="url(#glow)"
+        />
+      </motion.g>
+    </>
   );
 };
 
