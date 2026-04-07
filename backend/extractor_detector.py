@@ -47,9 +47,13 @@ class ExtractionDetector:
                 "ts": time.strftime("%H:%M:%S")
             })
 
+    def get_ip_risk(self, ip: str) -> float:
+        """Returns the current risk score for a given IP."""
+        return self.ip_risk.get(ip, 0.0)
+
     def _compute_risk(self, ip: str) -> float:
         queries = self.ip_queries[ip]
-        if len(queries) < 3:
+        if len(queries) < 2:
             return 0.0
         
         # Signal 1: Query volume (many queries = high risk)
@@ -59,18 +63,26 @@ class ExtractionDetector:
         features_matrix = np.array([q["features"] for q in queries])
         col_entropies = []
         for col in features_matrix.T:
+            # Check if column is constant (0 entropy)
+            if np.all(col == col[0]):
+                col_entropies.append(0.0)
+                continue
+            
+            # Robust histogram calculation
             hist, _ = np.histogram(col, bins=min(10, len(col)))
             hist = hist + 1e-9
             col_entropies.append(scipy_entropy(hist / hist.sum()))
-        avg_entropy = float(np.mean(col_entropies))
-        entropy_score = min(40, avg_entropy * 15)
+            
+        avg_entropy = float(np.mean(col_entropies)) if col_entropies else 0.0
+        entropy_score = min(40, avg_entropy * 20)  # Increase multiplier for visibility
         
         # Signal 3: Boundary probing (queries near decision boundary = confidence ~0.5)
         confidences = [q["confidence"] for q in queries]
-        near_boundary = sum(1 for c in confidences if 0.4 < c < 0.65)
-        boundary_score = min(20, near_boundary * 4)
+        near_boundary = sum(1 for c in confidences if 0.4 < c < 0.6)
+        boundary_score = min(30, near_boundary * 8) # Weight boundary probing more heavily
         
-        return round(min(100, volume_score + entropy_score + boundary_score), 2)
+        total_risk = volume_score + entropy_score + boundary_score
+        return round(min(100, total_risk), 2)
 
     def generate_poisoned_response(self, pred_label: int, confidence: float):
         # Flip the label and fake high confidence to corrupt surrogate model

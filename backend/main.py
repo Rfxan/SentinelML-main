@@ -193,16 +193,24 @@ async def predict(req: PredictRequest):
     # 3. Extraction detection + honeypot
     extraction_detector.record_query(req.ip, req.features, pred_label, confidence)
     is_honeypot = extraction_detector.is_honeypot(req.ip)
-    extraction_status = extraction_detector.get_status()
-    extraction_risk = extraction_status.get("risk_score", 0)
+    extraction_risk = extraction_detector.get_ip_risk(req.ip)
+    
     if is_honeypot:
+        # Check if this IP just became a honeypot (we only want one alert for activation)
+        # However, for simplicity and visibility, we'll alert on every poisoned request but with clearer labeling
         pred_label, confidence = extraction_detector.generate_poisoned_response(pred_label, confidence)
         await send_telegram_alert(
-            f"🍯 *Model Extraction Detected!*\n"
-            f"IP: `{req.ip}`\n"
-            f"Risk Score: `{extraction_risk}%`\n"
-            f"Action: Honeypot activated — poisoned response sent\n"
-            f"MITRE: `T1588` — Obtain Capabilities"
+            f"🍯 *Model Extraction — Honeypot Active*\n"
+            f"IP: `{req.ip}` | Risk: `{extraction_risk}%`\n"
+            f"Action: Poisoned Response (Label Flip)\n"
+            f"MITRE: `T1588.001` — Obtain Capabilities: Malware"
+        )
+    elif extraction_risk > 30:
+        await send_telegram_alert(
+            f"🔍 *Model Extraction Probe Detected*\n"
+            f"IP: `{req.ip}` | Risk: `{extraction_risk}%`\n"
+            f"Action: Monitoring via Extraction Engine\n"
+            f"MITRE: `T1592` — Gather Victim Digital Information"
         )
 
     # 4. Blocker
