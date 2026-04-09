@@ -27,6 +27,7 @@ backend/model.pkl
 backend/scaler.pkl
 backend/train_stats.pkl
 backend/data/
+backend/.env.example
 *.pkl
 *.txt
 
