@@ -59,7 +59,10 @@ app = FastAPI(title="SentinelML Backend")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://sentinel-ml-main-1zks.vercel.app",
+        "http://localhost:5173",  # keep for local dev
+    ],
     allow_methods=["*"],
     allow_headers=["*"],
 )
