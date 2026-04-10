@@ -133,11 +133,11 @@ export default function AdversarialSimulator() {
   return (
     <div
       style={{ fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace" }}
-      className="min-h-screen w-full bg-[#050810] text-white p-6 md:p-10"
+      className="min-h-screen w-full bg-slate-50 dark:bg-[#050810] text-slate-900 dark:text-white p-6 md:p-10 transition-colors duration-300"
     >
       {/* Scanline overlay */}
       <div
-        className="pointer-events-none fixed inset-0 z-0"
+        className="pointer-events-none fixed inset-0 z-0 opacity-20 dark:opacity-100"
         style={{ background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px)' }}
       />
 
@@ -157,12 +157,12 @@ export default function AdversarialSimulator() {
                 transition={{ duration: 2, repeat: Infinity }}
                 className="w-2 h-2 rounded-full bg-red-500"
               />
-              <span className="text-[10px] tracking-[0.3em] text-zinc-500 uppercase">SentinelML // Adversarial Engine v2</span>
+              <span className="text-[10px] tracking-[0.3em] text-slate-500 dark:text-zinc-500 uppercase">SentinelML // Adversarial Engine v2</span>
             </div>
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white">
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
               Attack <span style={{ color: selected.color }}>Simulator</span>
             </h1>
-            <p className="text-zinc-500 text-sm mt-1">Inject adversarial perturbations to stress-test model robustness</p>
+            <p className="text-slate-500 dark:text-zinc-500 text-sm mt-1">Inject adversarial perturbations to stress-test model robustness</p>
           </div>
           <div className="text-right hidden md:block">
             <div className="text-[10px] text-zinc-600 tracking-widest">ENDPOINT</div>
@@ -176,7 +176,7 @@ export default function AdversarialSimulator() {
           {/* Left panel */}
           <div className="lg:col-span-2 flex flex-col gap-4">
 
-            <div className="text-[10px] tracking-[0.25em] text-zinc-600 uppercase mb-1">// Attack Algorithm</div>
+            <div className="text-[10px] tracking-[0.25em] text-slate-500 dark:text-zinc-600 uppercase mb-1">// Attack Algorithm</div>
 
             {ATTACKS.map(atk => (
               <motion.button
@@ -186,14 +186,16 @@ export default function AdversarialSimulator() {
                 whileTap={!isRunning ? { scale: 0.99 } : {}}
                 className="relative w-full text-left p-4 rounded-lg border transition-all duration-300 overflow-hidden"
                 style={{
-                  borderColor: selected.id === atk.id ? atk.color : 'rgba(255,255,255,0.07)',
+                  borderColor: selected.id === atk.id ? atk.color : 'rgba(0,0,0,0.05)',
                   background: selected.id === atk.id
-                    ? `rgba(${atk.id === 'fgsm' ? '249,115,22' : '168,85,247'},0.06)`
-                    : 'rgba(255,255,255,0.02)',
-                  boxShadow: selected.id === atk.id ? `0 0 20px ${atk.glow}` : 'none',
+                    ? `rgba(${atk.id === 'fgsm' ? '249,115,22' : '168,85,247'}, 0.08)`
+                    : 'transparent',
+                  boxShadow: selected.id === atk.id ? `0 4px 20px ${atk.glow}` : 'none',
                   cursor: isRunning ? 'not-allowed' : 'pointer',
                 }}
               >
+                <div className={`absolute inset-0 dark:hidden ${selected.id === atk.id ? '' : 'bg-white/50'}`} />
+                <div className={`absolute inset-0 hidden dark:block ${selected.id === atk.id ? '' : 'bg-white/5'}`} />
                 {selected.id === atk.id && (
                   <motion.div
                     className="absolute inset-0 pointer-events-none"
@@ -216,21 +218,21 @@ export default function AdversarialSimulator() {
                     {atk.badge}
                   </span>
                 </div>
-                <div className="text-xs text-zinc-500 leading-relaxed">{atk.full}</div>
-                <div className="text-[11px] text-zinc-600 mt-2 leading-relaxed">{atk.desc}</div>
+                <div className="text-xs text-slate-600 dark:text-zinc-500 leading-relaxed font-semibold">{atk.full}</div>
+                <div className="text-[11px] text-slate-500 dark:text-zinc-600 mt-2 leading-relaxed">{atk.desc}</div>
               </motion.button>
             ))}
 
             {/* Count slider */}
-            <div className="p-4 rounded-lg border border-white/5 bg-white/[0.02]">
+            <div className="p-4 rounded-lg border border-slate-200 dark:border-white/5 bg-white dark:bg-white/[0.02]">
               <div className="flex justify-between items-center mb-3">
-                <span className="text-[10px] tracking-[0.25em] text-zinc-600 uppercase">// Sample Count</span>
+                <span className="text-[10px] tracking-[0.25em] text-slate-500 dark:text-zinc-600 uppercase">// Sample Count</span>
                 <motion.span
                   key={count}
                   initial={{ scale: 1.3, color: selected.color }}
-                  animate={{ scale: 1, color: '#ffffff' }}
+                  animate={{ scale: 1, color: undefined }}
                   transition={{ duration: 0.2 }}
-                  className="text-xl font-bold tabular-nums"
+                  className="text-xl font-bold tabular-nums text-slate-900 dark:text-white"
                 >
                   {count}
                 </motion.span>
@@ -245,10 +247,10 @@ export default function AdversarialSimulator() {
                 className="w-full h-1 rounded-full appearance-none cursor-pointer disabled:opacity-40"
                 style={{
                   accentColor: selected.color,
-                  background: `linear-gradient(to right, ${selected.color} ${(count / 50) * 100}%, rgba(255,255,255,0.1) 0%)`,
+                  background: `linear-gradient(to right, ${selected.color} ${(count / 50) * 100}%, rgba(0,0,0,0.05) 0%)`,
                 }}
               />
-              <div className="flex justify-between text-[10px] text-zinc-700 mt-1">
+              <div className="flex justify-between text-[10px] text-slate-400 dark:text-zinc-700 mt-1">
                 <span>1</span><span>25</span><span>50</span>
               </div>
             </div>
@@ -263,10 +265,10 @@ export default function AdversarialSimulator() {
                 className="relative w-full py-4 rounded-lg font-bold text-sm tracking-widest uppercase overflow-hidden transition-all duration-300"
                 style={{
                   background: isRunning
-                    ? 'rgba(255,255,255,0.04)'
-                    : `linear-gradient(135deg, ${selected.color}cc, ${selected.color}88)`,
-                  border: `1px solid ${isRunning ? 'rgba(255,255,255,0.1)' : selected.color}`,
-                  color: isRunning ? selected.color : '#000',
+                    ? 'rgba(0,0,0,0.02)'
+                    : `linear-gradient(135deg, ${selected.color}dd, ${selected.color}aa)`,
+                  border: `1px solid ${isRunning ? 'rgba(0,0,0,0.05)' : selected.color}`,
+                  color: isRunning ? selected.color : '#fff',
                   boxShadow: isRunning ? 'none' : `0 0 30px ${selected.glow}`,
                   cursor: isRunning ? 'not-allowed' : 'pointer',
                 }}
@@ -290,7 +292,7 @@ export default function AdversarialSimulator() {
                 animate={{ opacity: 1 }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="w-full py-4 rounded-lg font-bold text-sm tracking-widest uppercase border border-white/10 text-zinc-400 hover:text-white hover:border-white/20 transition-all"
+                className="w-full py-4 rounded-lg font-bold text-sm tracking-widest uppercase border border-slate-200 dark:border-white/10 text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-white/20 transition-all bg-white dark:bg-transparent"
               >
                 ↺ Reset
               </motion.button>
@@ -301,8 +303,8 @@ export default function AdversarialSimulator() {
           <div className="lg:col-span-3 flex flex-col gap-4">
 
             {/* Steps tracker */}
-            <div className="p-4 rounded-lg border border-white/5 bg-white/[0.02]">
-              <div className="text-[10px] tracking-[0.25em] text-zinc-600 uppercase mb-3">// Execution Steps</div>
+            <div className="p-4 rounded-lg border border-slate-200 dark:border-white/5 bg-white dark:bg-white/[0.02]">
+              <div className="text-[10px] tracking-[0.25em] text-slate-500 dark:text-zinc-600 uppercase mb-3">// Execution Steps</div>
               <div className="flex flex-col gap-2">
                 {selected.steps.map((step, i) => (
                   <div key={step} className="flex items-center gap-3">
@@ -312,11 +314,11 @@ export default function AdversarialSimulator() {
                         background:
                           phase === 'done' || (phase === 'running' && i <= currentStep)
                             ? selected.color
-                            : 'rgba(255,255,255,0.05)',
+                            : 'rgba(0,0,0,0.05)',
                         color:
                           phase === 'done' || (phase === 'running' && i <= currentStep)
-                            ? '#000'
-                            : '#52525b',
+                            ? '#fff'
+                            : '#94a3b8',
                         transition: 'all 0.3s',
                       }}
                     >
@@ -327,9 +329,9 @@ export default function AdversarialSimulator() {
                       style={{
                         color:
                           phase === 'running' && i === currentStep ? selected.color :
-                          phase === 'done' ? '#a1a1aa' :
-                          phase === 'running' && i < currentStep ? '#52525b' :
-                          '#3f3f46',
+                          phase === 'done' ? '#64748b' :
+                          phase === 'running' && i < currentStep ? '#94a3b8' :
+                          '#cbd5e1',
                       }}
                     >
                       {step}
@@ -350,7 +352,7 @@ export default function AdversarialSimulator() {
             </div>
 
             {/* Progress bar */}
-            <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-slate-200 dark:bg-white/5 rounded-full overflow-hidden">
               <motion.div
                 className="h-full rounded-full"
                 style={{ background: `linear-gradient(90deg, ${selected.color}, ${selected.color}88)` }}
@@ -361,19 +363,19 @@ export default function AdversarialSimulator() {
 
             {/* Terminal */}
             <div
-              className="flex-1 rounded-lg border border-white/5 bg-black/60 overflow-hidden"
-              style={{ minHeight: '280px', boxShadow: 'inset 0 0 30px rgba(0,0,0,0.5)' }}
+              className="flex-1 rounded-lg border border-slate-200 dark:border-white/5 bg-white/80 dark:bg-black/60 overflow-hidden backdrop-blur-sm"
+              style={{ minHeight: '280px', boxShadow: 'inset 0 0 30px rgba(0,0,0,0.02)' }}
             >
-              <div className="flex items-center gap-2 px-4 py-2 border-b border-white/5 bg-white/[0.02]">
+              <div className="flex items-center gap-2 px-4 py-2 border-b border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-white/[0.02]">
                 <div className="w-2.5 h-2.5 rounded-full bg-red-500/60" />
                 <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/60" />
                 <div className="w-2.5 h-2.5 rounded-full bg-green-500/60" />
-                <span className="ml-2 text-[10px] text-zinc-600 tracking-widest">SENTINEL // ATTACK LOG</span>
+                <span className="ml-2 text-[10px] text-slate-400 dark:text-zinc-600 tracking-widest uppercase">Sentinel // Attack Log</span>
               </div>
               <div ref={logRef} className="h-[260px] overflow-y-auto p-4 flex flex-col gap-0.5 scrollbar-thin">
                 <AnimatePresence initial={false}>
                   {logs.length === 0 && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-zinc-700 text-xs">
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-slate-300 dark:text-zinc-700 text-xs">
                       Awaiting launch command...
                       <motion.span animate={{ opacity: [1, 0] }} transition={{ duration: 0.8, repeat: Infinity }}>▌</motion.span>
                     </motion.div>
@@ -386,15 +388,15 @@ export default function AdversarialSimulator() {
                       transition={{ duration: 0.15 }}
                       className="flex gap-3 text-[11px] leading-5"
                     >
-                      <span className="text-zinc-700 flex-shrink-0 tabular-nums">{log.ts}</span>
+                      <span className="text-slate-400 dark:text-zinc-700 flex-shrink-0 tabular-nums">{log.ts}</span>
                       <span style={{
                         color:
-                          log.type === 'success' ? '#4ade80' :
-                          log.type === 'error' ? '#f87171' :
+                          log.type === 'success' ? '#059669' :
+                          log.type === 'error' ? '#dc2626' :
                           log.type === 'system' ? selected.color :
-                          log.type === 'dim' ? '#3f3f46' :
-                          '#71717a',
-                      }}>
+                          log.type === 'dim' ? '#94a3b8' :
+                          '#475569',
+                      }} className="dark:brightness-125 transition-colors">
                         {log.msg}
                       </span>
                     </motion.div>
@@ -427,12 +429,12 @@ export default function AdversarialSimulator() {
                     </div>
                     <div className="flex gap-4 text-[11px]">
                       <div className="text-center">
-                        <div className="font-bold text-white tabular-nums">{result.count}</div>
-                        <div className="text-zinc-600">samples</div>
+                        <div className="font-bold text-slate-900 dark:text-white tabular-nums">{result.count}</div>
+                        <div className="text-slate-400 dark:text-zinc-600">samples</div>
                       </div>
                       <div className="text-center">
-                        <div className="font-bold text-white tabular-nums">{(result.ips || []).length}</div>
-                        <div className="text-zinc-600">IPs used</div>
+                        <div className="font-bold text-slate-900 dark:text-white tabular-nums">{(result.ips || []).length}</div>
+                        <div className="text-slate-400 dark:text-zinc-600">IPs used</div>
                       </div>
                       <div className="text-center">
                         <div className="font-bold" style={{ color: selected.color }}>{selected.name}</div>
