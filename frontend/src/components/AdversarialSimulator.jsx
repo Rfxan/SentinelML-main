@@ -157,12 +157,12 @@ export default function AdversarialSimulator() {
                 transition={{ duration: 2, repeat: Infinity }}
                 className="w-2 h-2 rounded-full bg-red-500"
               />
-              <span className="text-[10px] tracking-[0.3em] text-slate-500 dark:text-zinc-500 uppercase">SentinelML // Adversarial Engine v2</span>
+              <span className="text-[10px] tracking-[0.3em] text-slate-600 dark:text-zinc-400 uppercase">SentinelML // Adversarial Engine v2</span>
             </div>
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
               Attack <span style={{ color: selected.color }}>Simulator</span>
             </h1>
-            <p className="text-slate-500 dark:text-zinc-500 text-sm mt-1">Inject adversarial perturbations to stress-test model robustness</p>
+            <p className="text-slate-600 dark:text-zinc-400 text-sm mt-1">Inject adversarial perturbations to stress-test model robustness</p>
           </div>
           <div className="text-right hidden md:block">
             <div className="text-[10px] text-zinc-600 tracking-widest">ENDPOINT</div>
@@ -176,7 +176,7 @@ export default function AdversarialSimulator() {
           {/* Left panel */}
           <div className="lg:col-span-2 flex flex-col gap-4">
 
-            <div className="text-[10px] tracking-[0.25em] text-slate-500 dark:text-zinc-600 uppercase mb-1">// Attack Algorithm</div>
+            <div className="text-[10px] tracking-[0.25em] text-slate-600 dark:text-zinc-500 uppercase mb-1">// Attack Algorithm</div>
 
             {ATTACKS.map(atk => (
               <motion.button
@@ -207,7 +207,7 @@ export default function AdversarialSimulator() {
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <div className="w-1.5 h-5 rounded-full" style={{ background: atk.color }} />
-                    <span className="text-base font-bold" style={{ color: selected.id === atk.id ? atk.color : '#a1a1aa' }}>
+                    <span className="text-base font-bold" style={{ color: selected.id === atk.id ? atk.color : undefined }} className={selected.id === atk.id ? '' : 'text-slate-400 dark:text-zinc-500'}>
                       {atk.name}
                     </span>
                   </div>
@@ -218,15 +218,15 @@ export default function AdversarialSimulator() {
                     {atk.badge}
                   </span>
                 </div>
-                <div className="text-xs text-slate-600 dark:text-zinc-500 leading-relaxed font-semibold">{atk.full}</div>
-                <div className="text-[11px] text-slate-500 dark:text-zinc-600 mt-2 leading-relaxed">{atk.desc}</div>
+                <div className="text-xs text-slate-700 dark:text-zinc-400 leading-relaxed font-semibold">{atk.full}</div>
+                <div className="text-[11px] text-slate-600 dark:text-zinc-500 mt-2 leading-relaxed">{atk.desc}</div>
               </motion.button>
             ))}
 
             {/* Count slider */}
             <div className="p-4 rounded-lg border border-slate-200 dark:border-white/5 bg-white dark:bg-white/[0.02]">
               <div className="flex justify-between items-center mb-3">
-                <span className="text-[10px] tracking-[0.25em] text-slate-500 dark:text-zinc-600 uppercase">// Sample Count</span>
+                <span className="text-[10px] tracking-[0.25em] text-slate-600 dark:text-zinc-500 uppercase">// Sample Count</span>
                 <motion.span
                   key={count}
                   initial={{ scale: 1.3, color: selected.color }}
@@ -314,11 +314,11 @@ export default function AdversarialSimulator() {
                         background:
                           phase === 'done' || (phase === 'running' && i <= currentStep)
                             ? selected.color
-                            : 'rgba(0,0,0,0.05)',
+                            : 'rgba(0,0,0,0.08)',
                         color:
                           phase === 'done' || (phase === 'running' && i <= currentStep)
                             ? '#fff'
-                            : '#94a3b8',
+                            : i + 1 > currentStep ? '#94a3b8' : '#64748b',
                         transition: 'all 0.3s',
                       }}
                     >
@@ -329,9 +329,9 @@ export default function AdversarialSimulator() {
                       style={{
                         color:
                           phase === 'running' && i === currentStep ? selected.color :
-                          phase === 'done' ? '#64748b' :
+                          phase === 'done' ? '#475569' :
                           phase === 'running' && i < currentStep ? '#94a3b8' :
-                          '#cbd5e1',
+                          '#94a3b8',
                       }}
                     >
                       {step}
@@ -375,7 +375,7 @@ export default function AdversarialSimulator() {
               <div ref={logRef} className="h-[260px] overflow-y-auto p-4 flex flex-col gap-0.5 scrollbar-thin">
                 <AnimatePresence initial={false}>
                   {logs.length === 0 && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-slate-300 dark:text-zinc-700 text-xs">
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-slate-400 dark:text-zinc-600 text-xs">
                       Awaiting launch command...
                       <motion.span animate={{ opacity: [1, 0] }} transition={{ duration: 0.8, repeat: Infinity }}>▌</motion.span>
                     </motion.div>
@@ -388,15 +388,15 @@ export default function AdversarialSimulator() {
                       transition={{ duration: 0.15 }}
                       className="flex gap-3 text-[11px] leading-5"
                     >
-                      <span className="text-slate-400 dark:text-zinc-700 flex-shrink-0 tabular-nums">{log.ts}</span>
+                      <span className="text-slate-500 dark:text-zinc-600 flex-shrink-0 tabular-nums">{log.ts}</span>
                       <span style={{
                         color:
                           log.type === 'success' ? '#059669' :
                           log.type === 'error' ? '#dc2626' :
                           log.type === 'system' ? selected.color :
                           log.type === 'dim' ? '#94a3b8' :
-                          '#475569',
-                      }} className="dark:brightness-125 transition-colors">
+                          '#334155',
+                      }} className="dark:text-slate-200 transition-colors">
                         {log.msg}
                       </span>
                     </motion.div>
@@ -425,7 +425,7 @@ export default function AdversarialSimulator() {
                       >
                         ✓
                       </motion.div>
-                      <span className="text-sm font-bold text-white">Simulation Complete</span>
+                      <span className="text-sm font-bold text-slate-900 dark:text-white">Simulation Complete</span>
                     </div>
                     <div className="flex gap-4 text-[11px]">
                       <div className="text-center">
@@ -438,7 +438,7 @@ export default function AdversarialSimulator() {
                       </div>
                       <div className="text-center">
                         <div className="font-bold" style={{ color: selected.color }}>{selected.name}</div>
-                        <div className="text-zinc-600">method</div>
+                        <div className="text-slate-500 dark:text-zinc-600">method</div>
                       </div>
                     </div>
                   </div>
