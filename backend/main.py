@@ -601,7 +601,8 @@ async def simulate(req: SimulateRequest):
             f = simulator.generate_extraction_probe(probe_type="boundary" if req.mode == "extraction_blitz" else "coverage")
             await predict(PredictRequest(features=f, ip=ip))
 
-        await asyncio.sleep(0.05)
+        # Randomized delay (jitter) between 10ms and 150ms
+        await asyncio.sleep(random.uniform(0.01, 0.15))
 
     return {"status": "simulated", "count": count, "ips": used_ips}
 

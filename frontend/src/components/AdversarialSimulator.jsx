@@ -6,11 +6,21 @@ const API_BASE = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000';
 
 const ATTACKS = [
   {
+    id: 'normal',
+    name: 'NORMAL',
+    full: 'Baseline Traffic Generation',
+    desc: 'Simulates legitimate user activity and standard network flow to establish a healthy traffic baseline.',
+    badge: 'BENIGN',
+    color: '#10b981',
+    glow: 'rgba(16,185,129,0.3)',
+    steps: ['Generating TCP/UDP packets', 'Simulating HTTP/S requests', 'Normalizing feature vectors', 'Injecting baseline noise'],
+  },
+  {
     id: 'fgsm',
     name: 'FGSM',
     full: 'Fast Gradient Sign Method',
     desc: 'Single-step gradient perturbation. Crafts adversarial noise by moving features in the direction of the loss gradient.',
-    badge: 'SINGLE-STEP',
+    badge: 'EVASION',
     color: '#f97316',
     glow: 'rgba(249,115,22,0.35)',
     steps: ['Computing gradient ∇J(θ,x,y)', 'Applying sign function', 'Perturbing feature vector by ε', 'Clipping to valid bounds'],
@@ -24,6 +34,16 @@ const ATTACKS = [
     color: '#a855f7',
     glow: 'rgba(168,85,247,0.35)',
     steps: ['Initialising perturbation δ=0', 'Computing numerical gradient', 'Gradient step + sign projection', 'Clipping to ε-ball & bounds', 'Repeating for N iterations'],
+  },
+  {
+    id: 'blitz',
+    name: 'BLITZ',
+    full: 'Volumetric Attack Blitz',
+    desc: 'Floods the target with a high-density burst of suspicious packets to overwhelm the primary detection layers.',
+    badge: 'VOLUMETRIC',
+    color: '#ef4444',
+    glow: 'rgba(239,68,68,0.35)',
+    steps: ['Spoofing source identifiers', 'Initiating packet flood', 'Varying payload entropy', 'Monitoring detection bypass'],
   },
 ];
 
@@ -64,7 +84,7 @@ export default function AdversarialSimulator() {
     }
   }, [logs]);
 
-  useEffect(() => () => clearInterval(intervalRef.current), []);
+  useEffect(() => () => clearTimeout(intervalRef.current), []);
 
   const addLog = (msg, type = 'info') => {
     const ts = new Date().toISOString().slice(11, 23);
@@ -84,19 +104,37 @@ export default function AdversarialSimulator() {
     addLog(`Launching ${selected.name} adversarial simulation — ${count} samples`, 'system');
     addLog(`Target: ${API_BASE}/simulate`, 'system');
 
-    intervalRef.current = setInterval(() => {
+    const loop = () => {
+      if (phase === 'done' || phase === 'error') return;
+
       prog = Math.min(prog + Math.random() * 8, 88);
       setProgress(prog);
+
       if (stepIdx < steps.length) {
         setCurrentStep(stepIdx);
         addLog(randomLog(selected, steps[stepIdx]), stepIdx % 2 === 0 ? 'info' : 'dim');
-        addSimulatedEvent(selected.id === 'pgd' ? 'evasion' : 'attack');
+        
+        // Intensity Randomization: sometimes add 0, 1, or 2 events
+        const burst = Math.floor(Math.random() * 3); 
+        for (let i = 0; i < burst; i++) {
+          const type = selected.id === 'normal' ? 'normal' : 
+                       (selected.id === 'fgsm' || selected.id === 'pgd') ? 'evasion' : 'attack';
+          addSimulatedEvent(type);
+        }
+        
         stepIdx++;
       } else {
         addLog(randomLog(selected, ''), 'dim');
-        addSimulatedEvent(selected.id === 'pgd' ? 'evasion' : 'attack');
+        addSimulatedEvent(selected.id === 'normal' ? 'normal' : 
+                         (selected.id === 'fgsm' || selected.id === 'pgd') ? 'evasion' : 'attack');
       }
-    }, 280);
+
+      // Recursive timeout for Jitter (150ms to 450ms)
+      const jitterDelay = 150 + Math.random() * 300;
+      intervalRef.current = setTimeout(loop, jitterDelay);
+    };
+
+    loop();
 
     try {
       const res = await fetch(`${API_BASE}/simulate`, {
@@ -105,7 +143,7 @@ export default function AdversarialSimulator() {
         body: JSON.stringify({ mode: selected.id, count: parseInt(count) }),
       });
 
-      clearInterval(intervalRef.current);
+      clearTimeout(intervalRef.current);
 
       if (!res.ok) throw new Error(`HTTP ${res.status} — ${res.statusText}`);
       const data = await res.json();
@@ -117,7 +155,7 @@ export default function AdversarialSimulator() {
       setResult(data);
       setPhase('done');
     } catch (err) {
-      clearInterval(intervalRef.current);
+      clearTimeout(intervalRef.current);
       setProgress(100);
       addLog(`ERROR — ${err.message}`, 'error');
       setPhase('error');
