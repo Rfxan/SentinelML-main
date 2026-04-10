@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { History, RotateCcw, CheckCircle2, AlertCircle, Loader2, Calendar, Database } from 'lucide-react';
 
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000';
+
 const ModelVersions = () => {
   const [versions, setVersions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -10,7 +12,7 @@ const ModelVersions = () => {
   const fetchVersions = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/model-versions');
+      const response = await fetch(`${API_BASE}/model-versions`);
       if (!response.ok) throw new Error('Failed to fetch versions');
       const data = await response.json();
       setVersions(data);
@@ -31,7 +33,7 @@ const ModelVersions = () => {
 
     setActionStatus({ id: versionId, loading: true, msg: null, type: null });
     try {
-      const response = await fetch('/api/model-rollback', {
+      const response = await fetch(`${API_BASE}/model-rollback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ version_id: versionId }),

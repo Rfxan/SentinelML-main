@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { BrainCircuit, Loader2, ShieldAlert, CheckCircle, AlertTriangle } from 'lucide-react';
 
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000';
+
 const AIInsights = ({ className }) => {
   const [insights, setInsights] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -8,8 +10,7 @@ const AIInsights = ({ className }) => {
 
   const fetchInsights = async () => {
     try {
-      // In a real app, you'd use a configured base URL. Assuming it's running locally here.
-      const url = `http://localhost:8000/ai-insights`;
+      const url = `${API_BASE}/ai-insights`;
       const response = await fetch(url);
       if (!response.ok) throw new Error('API Error');
       const data = await response.json();

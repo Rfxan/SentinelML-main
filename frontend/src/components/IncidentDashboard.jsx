@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import StatCard from './StatCard';
 
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000';
+
 const IncidentDashboard = () => {
   const [summary, setSummary] = useState({
     total_incidents: 0,
@@ -24,8 +26,8 @@ const IncidentDashboard = () => {
   const fetchData = async () => {
     try {
       const [sumRes, incRes] = await Promise.all([
-        fetch('http://127.0.0.1:8000/incident-summary'),
-        fetch('http://127.0.0.1:8000/incidents')
+        fetch(`${API_BASE}/incident-summary`),
+        fetch(`${API_BASE}/incidents`)
       ]);
       
       if (sumRes.ok && incRes.ok) {

@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Activity, ShieldOff, Waves, Clock } from 'lucide-react';
 
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000';
+
 const RateLimiterPanel = () => {
   const [rateStatus, setRateStatus] = useState({});
   const [loading, setLoading] = useState(true);
 
   const fetchStatus = async () => {
     try {
-      const res = await fetch('/api/train-rate-status');
+      const res = await fetch(`${API_BASE}/train-rate-status`);
       if (res.ok) {
         const data = await res.json();
         setRateStatus(data);

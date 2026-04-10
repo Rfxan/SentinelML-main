@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { Terminal } from 'lucide-react';
 
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000';
+
 const SIEMLog = () => {
   const [logs, setLogs] = useState([]);
 
   useEffect(() => {
     const fetchLogs = async () => {
       try {
-        const response = await fetch('http://127.0.0.1:8000/siem-log');
+        const response = await fetch(`${API_BASE}/siem-log`);
         if (response.ok) {
           const data = await response.json();
           setLogs(data);
