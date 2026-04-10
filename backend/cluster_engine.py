@@ -15,7 +15,13 @@ def perform_clustering(events):
         # 1. Extract features
         X = np.array([e["features"] for e in events])
         if X.shape[0] < 5:
-            return {"clusters": [], "outliers": 0, "message": "Insufficient data for clustering"}
+            return {
+                "clusters": [], 
+                "summaries": [], 
+                "outliers": 0, 
+                "total_events": len(events),
+                "message": "Insufficient data for clustering"
+            }
 
         # 2. Scale features
         scaler = StandardScaler()
@@ -69,4 +75,10 @@ def perform_clustering(events):
 
     except Exception as e:
         logger.error(f"Clustering failed: {e}")
-        return {"error": str(e), "clusters": [], "outliers": 0}
+        return {
+            "error": str(e), 
+            "clusters": [], 
+            "summaries": [], 
+            "outliers": 0,
+            "total_events": len(events) if 'events' in locals() else 0
+        }

@@ -67,7 +67,7 @@ function randomLog(attack, step) {
 }
 
 export default function AdversarialSimulator() {
-  const [selected, setSelected] = useState(ATTACKS[0]);
+  const [selectedIds, setSelectedIds] = useState(['normal']);
   const [count, setCount] = useState(10);
   const [phase, setPhase] = useState('idle'); // idle | running | done | error
   const [logs, setLogs] = useState([]);
@@ -92,17 +92,20 @@ export default function AdversarialSimulator() {
   };
 
   const runSimulation = async () => {
+    if (selectedIds.length === 0) return;
     setPhase('running');
     setLogs([]);
     setResult(null);
     setProgress(0);
     setCurrentStep(0);
 
-    const steps = selected.steps;
+    const activeModes = ATTACKS.filter(a => selectedIds.includes(a.id));
+    const primaryMode = activeModes[0];
+    const steps = primaryMode.steps;
     let stepIdx = 0;
     let prog = 0;
-    addLog(`Launching ${selected.name} adversarial simulation — ${count} samples`, 'system');
-    addLog(`Target: ${API_BASE}/simulate`, 'system');
+    addLog(`Launching Multi-Vector Simulation — ${activeModes.length} modes active`, 'system');
+    addLog(`Vectors: ${activeModes.map(a => a.name).join(', ')}`, 'system');
 
     const loop = () => {
       if (phase === 'done' || phase === 'error') return;
@@ -112,24 +115,38 @@ export default function AdversarialSimulator() {
 
       if (stepIdx < steps.length) {
         setCurrentStep(stepIdx);
-        addLog(randomLog(selected, steps[stepIdx]), stepIdx % 2 === 0 ? 'info' : 'dim');
+        // Use logs from a rotating selection of active modes for variety
+        const logSource = activeModes[stepIdx % activeModes.length];
+        addLog(randomLog(logSource, steps[stepIdx]), stepIdx % 2 === 0 ? 'info' : 'dim');
         
-        // Intensity Randomization: sometimes add 0, 1, or 2 events
-        const burst = Math.floor(Math.random() * 3); 
+        // Intensity Randomization
+        const burst = Math.floor(Math.random() * 2) + 1; 
         for (let i = 0; i < burst; i++) {
-          const type = selected.id === 'normal' ? 'normal' : 
-                       (selected.id === 'fgsm' || selected.id === 'pgd') ? 'evasion' : 'attack';
-          addSimulatedEvent(type);
+          activeModes.forEach(mode => {
+            let type;
+            if (mode.id === 'normal') type = 'normal';
+            else if (mode.id === 'fgsm') type = 'fgsm';
+            else if (mode.id === 'pgd') type = 'evasion';
+            else type = 'attack';
+            
+            addSimulatedEvent(type);
+          });
         }
         
         stepIdx++;
       } else {
-        addLog(randomLog(selected, ''), 'dim');
-        addSimulatedEvent(selected.id === 'normal' ? 'normal' : 
-                         (selected.id === 'fgsm' || selected.id === 'pgd') ? 'evasion' : 'attack');
+        addLog(`Synchronizing multi-vector results...`, 'dim');
+        activeModes.forEach(mode => {
+          let type;
+          if (mode.id === 'normal') type = 'normal';
+          else if (mode.id === 'fgsm') type = 'fgsm';
+          else if (mode.id === 'pgd') type = 'evasion';
+          else type = 'attack';
+          
+          addSimulatedEvent(type);
+        });
       }
 
-      // Recursive timeout for Jitter (150ms to 450ms)
       const jitterDelay = 150 + Math.random() * 300;
       intervalRef.current = setTimeout(loop, jitterDelay);
     };
@@ -137,22 +154,31 @@ export default function AdversarialSimulator() {
     loop();
 
     try {
-      const res = await fetch(`${API_BASE}/simulate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: selected.id, count: parseInt(count) }),
-      });
+      const countPerVector = Math.ceil(parseInt(count) / activeModes.length);
+      const results = await Promise.all(activeModes.map(mode => 
+        fetch(`${API_BASE}/simulate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode: mode.id, count: countPerVector }),
+        })
+      ));
+
+      const allOk = results.every(r => r.ok);
+      if (!allOk) throw new Error(`One or more stress vectors failed to initialize.`);
+      
+      const jsonResults = await Promise.all(results.map(r => r.json()));
+      const aggregateData = {
+        count: jsonResults.reduce((sum, r) => sum + r.count, 0),
+        ips: [...new Set(jsonResults.flatMap(r => r.ips || []))]
+      };
 
       clearTimeout(intervalRef.current);
 
-      if (!res.ok) throw new Error(`HTTP ${res.status} — ${res.statusText}`);
-      const data = await res.json();
-
       setProgress(100);
       setCurrentStep(steps.length - 1);
-      addLog(`Simulation complete — ${data.count} samples processed`, 'success');
-      addLog(`IPs targeted: ${(data.ips || []).slice(0, 3).join(', ')}${(data.ips || []).length > 3 ? ` +${data.ips.length - 3} more` : ''}`, 'success');
-      setResult(data);
+      addLog(`Simulation complete — ${aggregateData.count} samples processed across all vectors`, 'success');
+      addLog(`Unified IP Pool: ${(aggregateData.ips || []).slice(0, 3).join(', ')}${(aggregateData.ips || []).length > 3 ? ` +${aggregateData.ips.length - 3} more` : ''}`, 'success');
+      setResult(aggregateData);
       setPhase('done');
     } catch (err) {
       clearTimeout(intervalRef.current);
@@ -162,15 +188,28 @@ export default function AdversarialSimulator() {
     }
   };
 
-  const reset = () => {
-    setPhase('idle');
-    setLogs([]);
-    setResult(null);
-    setProgress(0);
-    setCurrentStep(0);
+  const toggleMode = (id) => {
+    if (isRunning) return;
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+    reset();
+  };
+
+  const selectAll = () => {
+    if (isRunning) return;
+    setSelectedIds(ATTACKS.map(a => a.id));
+    reset();
+  };
+
+  const clearAll = () => {
+    if (isRunning) return;
+    setSelectedIds([]);
+    reset();
   };
 
   const isRunning = phase === 'running';
+  const activeColor = ATTACKS.find(a => selectedIds.includes(a.id))?.color || '#94a3b8';
 
   return (
     <div
@@ -202,13 +241,13 @@ export default function AdversarialSimulator() {
               <span className="text-[10px] tracking-[0.3em] text-slate-600 dark:text-zinc-400 uppercase">SentinelML // Adversarial Engine v2</span>
             </div>
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
-              Attack <span style={{ color: selected.color }}>Simulator</span>
+              Attack <span style={{ color: activeColor }}>Simulator</span>
             </h1>
-            <p className="text-slate-600 dark:text-zinc-400 text-sm mt-1">Inject adversarial perturbations to stress-test model robustness</p>
+            <p className="text-slate-600 dark:text-zinc-400 text-sm mt-1">Multi-vector stress-testing environment</p>
           </div>
           <div className="text-right hidden md:block">
-            <div className="text-[10px] text-zinc-600 tracking-widest">ENDPOINT</div>
-            <div className="text-xs text-zinc-400">{API_BASE}/simulate</div>
+            <div className="text-[10px] text-zinc-600 tracking-widest uppercase mb-1">Active Vectors</div>
+            <div className="text-xs text-emerald-500 font-bold">{selectedIds.length} Selected</div>
           </div>
         </motion.div>
 
@@ -218,27 +257,33 @@ export default function AdversarialSimulator() {
           {/* Left panel */}
           <div className="lg:col-span-2 flex flex-col gap-4">
 
-            <div className="text-[10px] tracking-[0.25em] text-slate-600 dark:text-zinc-500 uppercase mb-1">// Attack Algorithm</div>
+            <div className="flex items-center justify-between mb-1">
+              <div className="text-[10px] tracking-[0.25em] text-slate-600 dark:text-zinc-500 uppercase">// Attack Algorithm</div>
+              <div className="flex gap-3">
+                <button onClick={selectAll} disabled={isRunning} className="text-[10px] text-blue-500 hover:text-blue-600 uppercase font-bold transition-colors disabled:opacity-40">Select All</button>
+                <button onClick={clearAll} disabled={isRunning} className="text-[10px] text-rose-500 hover:text-rose-600 uppercase font-bold transition-colors disabled:opacity-40">Clear</button>
+              </div>
+            </div>
 
             {ATTACKS.map(atk => (
               <motion.button
                 key={atk.id}
-                onClick={() => { if (!isRunning) { setSelected(atk); reset(); } }}
+                onClick={() => toggleMode(atk.id)}
                 whileHover={!isRunning ? { scale: 1.01 } : {}}
                 whileTap={!isRunning ? { scale: 0.99 } : {}}
                 className="relative w-full text-left p-4 rounded-lg border transition-all duration-300 overflow-hidden"
                 style={{
-                  borderColor: selected.id === atk.id ? atk.color : 'rgba(0,0,0,0.05)',
-                  background: selected.id === atk.id
-                    ? `rgba(${atk.id === 'fgsm' ? '249,115,22' : '168,85,247'}, 0.08)`
+                  borderColor: selectedIds.includes(atk.id) ? atk.color : 'rgba(0,0,0,0.05)',
+                  background: selectedIds.includes(atk.id)
+                    ? `rgba(${atk.id === 'fgsm' || atk.id === 'pgd' ? '168,85,247' : atk.id === 'normal' ? '16,185,129' : '239,68,68'}, 0.08)`
                     : 'transparent',
-                  boxShadow: selected.id === atk.id ? `0 4px 20px ${atk.glow}` : 'none',
+                  boxShadow: selectedIds.includes(atk.id) ? `0 4px 20px ${atk.glow}` : 'none',
                   cursor: isRunning ? 'not-allowed' : 'pointer',
                 }}
               >
-                <div className={`absolute inset-0 dark:hidden ${selected.id === atk.id ? '' : 'bg-white/50'}`} />
-                <div className={`absolute inset-0 hidden dark:block ${selected.id === atk.id ? '' : 'bg-white/5'}`} />
-                {selected.id === atk.id && (
+                <div className={`absolute inset-0 dark:hidden ${selectedIds.includes(atk.id) ? '' : 'bg-white/50'}`} />
+                <div className={`absolute inset-0 hidden dark:block ${selectedIds.includes(atk.id) ? '' : 'bg-white/10'}`} />
+                {selectedIds.includes(atk.id) && (
                   <motion.div
                     className="absolute inset-0 pointer-events-none"
                     animate={{ opacity: [0.05, 0.12, 0.05] }}
@@ -249,16 +294,23 @@ export default function AdversarialSimulator() {
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <div className="w-1.5 h-5 rounded-full" style={{ background: atk.color }} />
-                    <span className="text-base font-bold" style={{ color: selected.id === atk.id ? atk.color : undefined }} className={selected.id === atk.id ? '' : 'text-slate-400 dark:text-zinc-500'}>
+                    <span className="text-base font-bold" style={{ color: selectedIds.includes(atk.id) ? atk.color : undefined }} className={selectedIds.includes(atk.id) ? '' : 'text-slate-400 dark:text-zinc-500'}>
                       {atk.name}
                     </span>
                   </div>
-                  <span
-                    className="text-[9px] tracking-widest px-2 py-0.5 rounded-sm border"
-                    style={{ color: atk.color, borderColor: `${atk.color}40`, background: `${atk.color}12` }}
-                  >
-                    {atk.badge}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {selectedIds.includes(atk.id) && (
+                      <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center">
+                        <span className="text-[10px] text-white font-bold">✓</span>
+                      </motion.div>
+                    )}
+                    <span
+                      className="text-[9px] tracking-widest px-2 py-0.5 rounded-sm border"
+                      style={{ color: atk.color, borderColor: `${atk.color}40`, background: `${atk.color}12` }}
+                    >
+                      {atk.badge}
+                    </span>
+                  </div>
                 </div>
                 <div className="text-xs text-slate-700 dark:text-zinc-400 leading-relaxed font-semibold">{atk.full}</div>
                 <div className="text-[11px] text-slate-600 dark:text-zinc-500 mt-2 leading-relaxed">{atk.desc}</div>
@@ -268,10 +320,10 @@ export default function AdversarialSimulator() {
             {/* Count slider */}
             <div className="p-4 rounded-lg border border-slate-200 dark:border-white/5 bg-white dark:bg-white/[0.02]">
               <div className="flex justify-between items-center mb-3">
-                <span className="text-[10px] tracking-[0.25em] text-slate-600 dark:text-zinc-500 uppercase">// Sample Count</span>
+                <span className="text-[10px] tracking-[0.25em] text-slate-600 dark:text-zinc-500 uppercase">// Sample Density</span>
                 <motion.span
                   key={count}
-                  initial={{ scale: 1.3, color: selected.color }}
+                  initial={{ scale: 1.3, color: activeColor }}
                   animate={{ scale: 1, color: undefined }}
                   transition={{ duration: 0.2 }}
                   className="text-xl font-bold tabular-nums text-slate-900 dark:text-white"
@@ -288,8 +340,8 @@ export default function AdversarialSimulator() {
                 onChange={e => setCount(parseInt(e.target.value))}
                 className="w-full h-1 rounded-full appearance-none cursor-pointer disabled:opacity-40"
                 style={{
-                  accentColor: selected.color,
-                  background: `linear-gradient(to right, ${selected.color} ${(count / 50) * 100}%, rgba(0,0,0,0.05) 0%)`,
+                  accentColor: activeColor,
+                  background: `linear-gradient(to right, ${activeColor} ${(count / 50) * 100}%, rgba(0,0,0,0.05) 0%)`,
                 }}
               />
               <div className="flex justify-between text-[10px] text-slate-400 dark:text-zinc-700 mt-1">
@@ -301,30 +353,30 @@ export default function AdversarialSimulator() {
             {phase === 'idle' || phase === 'running' ? (
               <motion.button
                 onClick={runSimulation}
-                disabled={isRunning}
-                whileHover={!isRunning ? { scale: 1.02 } : {}}
-                whileTap={!isRunning ? { scale: 0.98 } : {}}
+                disabled={isRunning || selectedIds.length === 0}
+                whileHover={!isRunning && selectedIds.length > 0 ? { scale: 1.02 } : {}}
+                whileTap={!isRunning && selectedIds.length > 0 ? { scale: 0.98 } : {}}
                 className="relative w-full py-4 rounded-lg font-bold text-sm tracking-widest uppercase overflow-hidden transition-all duration-300"
                 style={{
-                  background: isRunning
+                  background: isRunning || selectedIds.length === 0
                     ? 'rgba(0,0,0,0.02)'
-                    : `linear-gradient(135deg, ${selected.color}dd, ${selected.color}aa)`,
-                  border: `1px solid ${isRunning ? 'rgba(0,0,0,0.05)' : selected.color}`,
-                  color: isRunning ? selected.color : '#fff',
-                  boxShadow: isRunning ? 'none' : `0 0 30px ${selected.glow}`,
-                  cursor: isRunning ? 'not-allowed' : 'pointer',
+                    : `linear-gradient(135deg, ${activeColor}dd, ${activeColor}aa)`,
+                  border: `1px solid ${isRunning || selectedIds.length === 0 ? 'rgba(0,0,0,0.05)' : activeColor}`,
+                  color: isRunning || selectedIds.length === 0 ? '#94a3b8' : '#fff',
+                  boxShadow: isRunning || selectedIds.length === 0 ? 'none' : `0 0 30px ${activeColor}30`,
+                  cursor: isRunning || selectedIds.length === 0 ? 'not-allowed' : 'pointer',
                 }}
               >
                 {isRunning && (
                   <motion.div
                     className="absolute inset-0"
-                    style={{ background: `linear-gradient(90deg, transparent, ${selected.color}30, transparent)` }}
+                    style={{ background: `linear-gradient(90deg, transparent, ${activeColor}30, transparent)` }}
                     animate={{ x: ['-100%', '100%'] }}
                     transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }}
                   />
                 )}
-                <span className="relative z-10">
-                  {isRunning ? `▶ Running ${selected.name}...` : `▶ Launch ${selected.name}`}
+                <span className="relative z-10 font-bold">
+                  {isRunning ? `▶ Stressing ${selectedIds.length} Vectors...` : selectedIds.length === 0 ? 'Select Vector' : `▶ Launch ${selectedIds.length} Vectors`}
                 </span>
               </motion.button>
             ) : (
@@ -346,19 +398,19 @@ export default function AdversarialSimulator() {
 
             {/* Steps tracker */}
             <div className="p-4 rounded-lg border border-slate-200 dark:border-white/5 bg-white dark:bg-white/[0.02]">
-              <div className="text-[10px] tracking-[0.25em] text-slate-500 dark:text-zinc-600 uppercase mb-3">// Execution Steps</div>
+              <div className="text-[10px] tracking-[0.25em] text-slate-500 dark:text-zinc-600 uppercase mb-3">// Unified Execution Path</div>
               <div className="flex flex-col gap-2">
-                {selected.steps.map((step, i) => (
+                {(ATTACKS.find(a => selectedIds.includes(a.id))?.steps || ['Select a vector to begin']).map((step, i) => (
                   <div key={step} className="flex items-center gap-3">
                     <div
                       className="w-5 h-5 rounded-sm flex items-center justify-center text-[10px] font-bold flex-shrink-0"
                       style={{
                         background:
-                          phase === 'done' || (phase === 'running' && i <= currentStep)
-                            ? selected.color
+                          selectedIds.length > 0 && (phase === 'done' || (phase === 'running' && i <= currentStep))
+                            ? activeColor
                             : 'rgba(0,0,0,0.08)',
                         color:
-                          phase === 'done' || (phase === 'running' && i <= currentStep)
+                          selectedIds.length > 0 && (phase === 'done' || (phase === 'running' && i <= currentStep))
                             ? '#fff'
                             : i + 1 > currentStep ? '#94a3b8' : '#64748b',
                         transition: 'all 0.3s',
@@ -367,27 +419,16 @@ export default function AdversarialSimulator() {
                       {phase === 'done' || (phase === 'running' && i < currentStep) ? '✓' : i + 1}
                     </div>
                     <span
-                      className="text-xs transition-colors duration-300"
+                      className="text-xs transition-colors duration-300 font-semibold"
                       style={{
                         color:
-                          phase === 'running' && i === currentStep ? selected.color :
+                          phase === 'running' && i === currentStep ? activeColor :
                           phase === 'done' ? '#475569' :
-                          phase === 'running' && i < currentStep ? '#94a3b8' :
                           '#94a3b8',
                       }}
                     >
                       {step}
                     </span>
-                    {phase === 'running' && i === currentStep && (
-                      <motion.span
-                        animate={{ opacity: [1, 0] }}
-                        transition={{ duration: 0.6, repeat: Infinity }}
-                        className="text-xs"
-                        style={{ color: selected.color }}
-                      >
-                        █
-                      </motion.span>
-                    )}
                   </div>
                 ))}
               </div>
@@ -397,7 +438,7 @@ export default function AdversarialSimulator() {
             <div className="h-1.5 bg-slate-200 dark:bg-white/5 rounded-full overflow-hidden">
               <motion.div
                 className="h-full rounded-full"
-                style={{ background: `linear-gradient(90deg, ${selected.color}, ${selected.color}88)` }}
+                style={{ background: `linear-gradient(90deg, ${activeColor}, ${activeColor}88)` }}
                 animate={{ width: `${progress}%` }}
                 transition={{ duration: 0.3, ease: 'easeOut' }}
               />
@@ -455,7 +496,7 @@ export default function AdversarialSimulator() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
                   className="p-4 rounded-lg border"
-                  style={{ borderColor: `${selected.color}40`, background: `${selected.color}08` }}
+                  style={{ borderColor: `${activeColor}40`, background: `${activeColor}08` }}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -463,7 +504,7 @@ export default function AdversarialSimulator() {
                         animate={{ scale: [1, 1.2, 1] }}
                         transition={{ duration: 0.4 }}
                         className="text-sm font-bold"
-                        style={{ color: selected.color }}
+                        style={{ color: activeColor }}
                       >
                         ✓
                       </motion.div>
@@ -479,8 +520,8 @@ export default function AdversarialSimulator() {
                         <div className="text-slate-400 dark:text-zinc-600">IPs used</div>
                       </div>
                       <div className="text-center">
-                        <div className="font-bold" style={{ color: selected.color }}>{selected.name}</div>
-                        <div className="text-slate-500 dark:text-zinc-600">method</div>
+                        <div className="font-bold" style={{ color: activeColor }}>{selectedIds.length} Vectors</div>
+                        <div className="text-slate-500 dark:text-zinc-600">active</div>
                       </div>
                     </div>
                   </div>

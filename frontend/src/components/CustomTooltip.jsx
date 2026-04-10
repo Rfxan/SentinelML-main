@@ -11,6 +11,7 @@ const CustomTooltip = ({ active, payload, label }) => {
             if (entry.dataKey === 'normal') colorClass = 'text-emerald-400';
             if (entry.dataKey === 'attacks') colorClass = 'text-rose-400';
             if (entry.dataKey === 'adversarial') colorClass = 'text-purple-400';
+            if (entry.dataKey === 'fgsm') colorClass = 'text-orange-400';
             
             return (
               <div key={index} className="flex items-center gap-3 justify-between">

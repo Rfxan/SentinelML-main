@@ -13,7 +13,7 @@ export function useAttackTrends(windowSeconds = 15) {
     for (let i = windowSeconds - 1; i >= 0; i--) {
       const d = new Date(now.getTime() - i * 1000);
       const timeKey = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
-      buckets[timeKey] = { time: timeKey, normal: 0, attacks: 0, adversarial: 0 };
+      buckets[timeKey] = { time: timeKey, normal: 0, attacks: 0, adversarial: 0, fgsm: 0 };
     }
 
     const cutoff = new Date(now.getTime() - windowSeconds * 1000);
@@ -37,6 +37,8 @@ export function useAttackTrends(windowSeconds = 15) {
               buckets[timeKey].normal++;
             } else if (type === 'attack') {
               buckets[timeKey].attacks++;
+            } else if (type === 'fgsm') {
+              buckets[timeKey].fgsm++;
             } else if (type === 'evasion' || type === 'poison' || type === 'poisoning') {
               buckets[timeKey].adversarial++;
             }

@@ -132,8 +132,8 @@ const ClusterAnalysis = () => {
                 />
                 <ZAxis type="number" range={[60, 400]} />
                 <Tooltip content={<CustomTooltip />} />
-                <Scatter data={data.clusters}>
-                  {data.clusters.map((entry, index) => (
+                <Scatter data={data.clusters || []}>
+                  {(data.clusters || []).map((entry, index) => (
                     <Cell 
                       key={`cell-${index}`} 
                       fill={getClusterColor(entry.cluster_id)}
@@ -170,7 +170,7 @@ const ClusterAnalysis = () => {
                <div className="flex-1 overflow-auto max-h-[250px] scrollbar-thin mt-2">
                    <p className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-widest">Active Cluster Breakdown</p>
                   <div className="space-y-3">
-                    {data.summaries.map(s => (
+                    {(data.summaries || []).map(s => (
                       <div key={s.cluster_id} className="flex items-center justify-between p-3 bg-slate-100/50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-800">
                         <div className="flex items-center gap-3">
                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: getClusterColor(s.cluster_id) }}></div>

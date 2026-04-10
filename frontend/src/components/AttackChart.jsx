@@ -9,7 +9,8 @@ const AttackChart = () => {
   const [hiddenSeries, setHiddenSeries] = useState({
     normal: false,
     attacks: false,
-    adversarial: false
+    adversarial: false,
+    fgsm: false
   });
 
   const toggleSeries = (dataKey) => {
@@ -58,6 +59,10 @@ const AttackChart = () => {
               <linearGradient id="colorAdversarial" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#a855f7" stopOpacity={0.6}/>
                 <stop offset="95%" stopColor="#a855f7" stopOpacity={0}/>
+              </linearGradient>
+              <linearGradient id="colorFGSM" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#f97316" stopOpacity={0.6}/>
+                <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--chart-grid)" />
@@ -114,11 +119,24 @@ const AttackChart = () => {
               <Area 
                 type="monotone" 
                 dataKey="adversarial" 
-                name="Adversarial"
+                name="Adversarial (PGD)"
                 stroke="#a855f7" 
                 strokeWidth={3}
                 fillOpacity={1} 
                 fill="url(#colorAdversarial)" 
+                stackId="1" 
+                isAnimationActive={false}
+              />
+            )}
+            {!hiddenSeries.fgsm && (
+              <Area 
+                type="monotone" 
+                dataKey="fgsm" 
+                name="FGSM Attack"
+                stroke="#f97316" 
+                strokeWidth={3}
+                fillOpacity={1} 
+                fill="url(#colorFGSM)" 
                 stackId="1" 
                 isAnimationActive={false}
               />
