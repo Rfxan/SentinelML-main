@@ -91,6 +91,15 @@ export default function AdversarialSimulator() {
     setLogs(prev => [...prev.slice(-60), { ts, msg, type, id: Math.random() }]);
   };
 
+  const reset = () => {
+    setPhase('idle');
+    setLogs([]);
+    setResult(null);
+    setProgress(0);
+    setCurrentStep(0);
+    clearTimeout(intervalRef.current);
+  };
+
   const runSimulation = async () => {
     if (selectedIds.length === 0) return;
     setPhase('running');
@@ -476,7 +485,7 @@ export default function AdversarialSimulator() {
                         color:
                           log.type === 'success' ? '#059669' :
                           log.type === 'error' ? '#dc2626' :
-                          log.type === 'system' ? selected.color :
+                          log.type === 'system' ? activeColor :
                           log.type === 'dim' ? '#94a3b8' :
                           '#334155',
                       }} className="dark:text-slate-200 transition-colors">
