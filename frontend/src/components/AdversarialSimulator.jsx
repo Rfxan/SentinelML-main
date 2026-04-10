@@ -119,87 +119,58 @@ export default function AdversarialSimulator() {
     const loop = () => {
       if (phase === 'done' || phase === 'error') return;
 
-      prog = Math.min(prog + Math.random() * 8, 88);
+      // Infinite Log Cycling & Injection
+      const currentStepIdx = stepIdx % steps.length;
+      setCurrentStep(currentStepIdx);
+      
+      // Rotate log sources for variety
+      const logSource = activeModes[stepIdx % activeModes.length];
+      addLog(randomLog(logSource, steps[currentStepIdx]), stepIdx % 2 === 0 ? 'info' : 'dim');
+      
+      // Per-vector randomized injection
+      activeModes.forEach(mode => {
+        const PROFILES = {
+          normal: { prob: 0.9, burst: [1, 2] },
+          fgsm:   { prob: 0.6, burst: [2, 5] },
+          pgd:    { prob: 0.4, burst: [4, 8] },
+          blitz:  { prob: 0.2, burst: [8, 15] }
+        };
+
+        const profile = PROFILES[mode.id] || PROFILES.normal;
+        if (Math.random() < profile.prob) {
+          const burstSize = Math.floor(Math.random() * (profile.burst[1] - profile.burst[0] + 1)) + profile.burst[0];
+          for (let i = 0; i < burstSize; i++) {
+            let type = mode.id === 'normal' ? 'normal' :
+                       mode.id === 'fgsm' ? 'fgsm' :
+                       mode.id === 'pgd' ? 'evasion' : 'attack';
+            addSimulatedEvent(type);
+          }
+        }
+      });
+
+      // Creeping progress (simulates continuous activity)
+      prog = prog >= 98 ? 92 : prog + (Math.random() * 2); 
       setProgress(prog);
 
-      if (stepIdx < steps.length) {
-        setCurrentStep(stepIdx);
-        // Use logs from a rotating selection of active modes for variety
-        const logSource = activeModes[stepIdx % activeModes.length];
-        addLog(randomLog(logSource, steps[stepIdx]), stepIdx % 2 === 0 ? 'info' : 'dim');
-        
-        // Decoupled Injection Logic for visual variety
-        activeModes.forEach(mode => {
-          // Each vector has its own independent "firing" chance and burst size per tick
-          const shouldFire = Math.random() > 0.3; // 70% chance to fire this tick
-          if (!shouldFire && mode.id !== 'normal') return; // Normal traffic is more consistent
-
-          const modeBurst = Math.floor(Math.random() * 3) + (mode.id === 'normal' ? 1 : 0); 
-          for (let i = 0; i < modeBurst; i++) {
-            let type;
-            if (mode.id === 'normal') type = 'normal';
-            else if (mode.id === 'fgsm') type = 'fgsm';
-            else if (mode.id === 'pgd') type = 'evasion';
-            else type = 'attack';
-            
-            addSimulatedEvent(type);
-          }
-        });
-        
-        stepIdx++;
-        const jitterDelay = 150 + Math.random() * 300;
-        intervalRef.current = setTimeout(loop, jitterDelay);
-      } else if (stepIdx === steps.length) {
-        addLog(`Synchronizing multi-vector results...`, 'dim');
-        // Final sync burst with individual variability
-        activeModes.forEach(mode => {
-          const finalBurst = Math.floor(Math.random() * 2) + 1;
-          for (let i = 0; i < finalBurst; i++) {
-            let type;
-            if (mode.id === 'normal') type = 'normal';
-            else if (mode.id === 'fgsm') type = 'fgsm';
-            else if (mode.id === 'pgd') type = 'evasion';
-            else type = 'attack';
-            addSimulatedEvent(type);
-          }
-        });
-        stepIdx++; // Move past the synchronization phase so we don't log it again
-      }
+      stepIdx++;
+      const jitterDelay = 150 + Math.random() * 300;
+      intervalRef.current = setTimeout(loop, jitterDelay);
     };
 
     loop();
 
     try {
       const countPerVector = Math.ceil(parseInt(count) / activeModes.length);
-      const results = await Promise.all(activeModes.map(mode => 
+      await Promise.all(activeModes.map(mode => 
         fetch(`${API_BASE}/simulate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mode: mode.id, count: countPerVector }),
         })
       ));
-
-      const allOk = results.every(r => r.ok);
-      if (!allOk) throw new Error(`One or more stress vectors failed to initialize.`);
-      
-      const jsonResults = await Promise.all(results.map(r => r.json()));
-      const aggregateData = {
-        count: jsonResults.reduce((sum, r) => sum + r.count, 0),
-        ips: [...new Set(jsonResults.flatMap(r => r.ips || []))]
-      };
-
-      clearTimeout(intervalRef.current);
-
-      setProgress(100);
-      setCurrentStep(steps.length - 1);
-      addLog(`Simulation complete — ${aggregateData.count} samples processed across all vectors`, 'success');
-      addLog(`Unified IP Pool: ${(aggregateData.ips || []).slice(0, 3).join(', ')}${(aggregateData.ips || []).length > 3 ? ` +${aggregateData.ips.length - 3} more` : ''}`, 'success');
-      setResult(aggregateData);
-      setPhase('done');
+      // No automatic setPhase('done') here to keep it running
     } catch (err) {
-      clearTimeout(intervalRef.current);
-      setProgress(100);
-      addLog(`ERROR — ${err.message}`, 'error');
+      addLog(`INIT ERROR — ${err.message}`, 'error');
       setPhase('error');
     }
   };
@@ -365,13 +336,13 @@ export default function AdversarialSimulator() {
               </div>
             </div>
 
-            {/* Launch / Reset */}
+            {/* Launch / Stop */}
             {phase === 'idle' || phase === 'running' ? (
               <motion.button
-                onClick={runSimulation}
-                disabled={isRunning || selectedIds.length === 0}
-                whileHover={!isRunning && selectedIds.length > 0 ? { scale: 1.02 } : {}}
-                whileTap={!isRunning && selectedIds.length > 0 ? { scale: 0.98 } : {}}
+                onClick={phase === 'running' ? reset : runSimulation}
+                disabled={selectedIds.length === 0}
+                whileHover={selectedIds.length > 0 ? { scale: 1.02 } : {}}
+                whileTap={selectedIds.length > 0 ? { scale: 0.98 } : {}}
                 className="relative w-full py-4 rounded-lg font-bold text-sm tracking-widest uppercase overflow-hidden transition-all duration-300"
                 style={{
                   background: isRunning || selectedIds.length === 0
@@ -392,7 +363,12 @@ export default function AdversarialSimulator() {
                   />
                 )}
                 <span className="relative z-10 font-bold">
-                  {isRunning ? `▶ Stressing ${selectedIds.length} Vectors...` : selectedIds.length === 0 ? 'Select Vector' : `▶ Launch ${selectedIds.length} Vectors`}
+                  {phase === 'running' ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                      🛰 Stop Stress Test ({selectedIds.length})
+                    </div>
+                  ) : selectedIds.length === 0 ? 'Select Vector' : `▶ Launch ${selectedIds.length} Vectors`}
                 </span>
               </motion.button>
             ) : (
