@@ -128,10 +128,14 @@ export default function AdversarialSimulator() {
         const logSource = activeModes[stepIdx % activeModes.length];
         addLog(randomLog(logSource, steps[stepIdx]), stepIdx % 2 === 0 ? 'info' : 'dim');
         
-        // Intensity Randomization
-        const burst = Math.floor(Math.random() * 2) + 1; 
-        for (let i = 0; i < burst; i++) {
-          activeModes.forEach(mode => {
+        // Decoupled Injection Logic for visual variety
+        activeModes.forEach(mode => {
+          // Each vector has its own independent "firing" chance and burst size per tick
+          const shouldFire = Math.random() > 0.3; // 70% chance to fire this tick
+          if (!shouldFire && mode.id !== 'normal') return; // Normal traffic is more consistent
+
+          const modeBurst = Math.floor(Math.random() * 3) + (mode.id === 'normal' ? 1 : 0); 
+          for (let i = 0; i < modeBurst; i++) {
             let type;
             if (mode.id === 'normal') type = 'normal';
             else if (mode.id === 'fgsm') type = 'fgsm';
@@ -139,25 +143,28 @@ export default function AdversarialSimulator() {
             else type = 'attack';
             
             addSimulatedEvent(type);
-          });
-        }
+          }
+        });
         
         stepIdx++;
-      } else {
+        const jitterDelay = 150 + Math.random() * 300;
+        intervalRef.current = setTimeout(loop, jitterDelay);
+      } else if (stepIdx === steps.length) {
         addLog(`Synchronizing multi-vector results...`, 'dim');
+        // Final sync burst with individual variability
         activeModes.forEach(mode => {
-          let type;
-          if (mode.id === 'normal') type = 'normal';
-          else if (mode.id === 'fgsm') type = 'fgsm';
-          else if (mode.id === 'pgd') type = 'evasion';
-          else type = 'attack';
-          
-          addSimulatedEvent(type);
+          const finalBurst = Math.floor(Math.random() * 2) + 1;
+          for (let i = 0; i < finalBurst; i++) {
+            let type;
+            if (mode.id === 'normal') type = 'normal';
+            else if (mode.id === 'fgsm') type = 'fgsm';
+            else if (mode.id === 'pgd') type = 'evasion';
+            else type = 'attack';
+            addSimulatedEvent(type);
+          }
         });
+        stepIdx++; // Move past the synchronization phase so we don't log it again
       }
-
-      const jitterDelay = 150 + Math.random() * 300;
-      intervalRef.current = setTimeout(loop, jitterDelay);
     };
 
     loop();
