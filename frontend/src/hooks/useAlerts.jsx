@@ -12,6 +12,7 @@ export const AlertProvider = ({ children }) => {
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [activeFlashes, setActiveFlashes] = useState([]);
   const [toasts, setToasts] = useState([]);
+  const [simulatedEvents, setSimulatedEvents] = useState([]);
 
   // Track the most recent seen event to trigger new alerts
   const [lastSeenTime, setLastSeenTime] = useState(Date.now() / 1000); 
@@ -48,6 +49,18 @@ export const AlertProvider = ({ children }) => {
       console.warn("Audio play failed", e);
     }
   }, [soundEnabled]);
+  
+  // Add a local event to trigger real-time graph spikes without backend polling latency
+  const addSimulatedEvent = useCallback((type = 'evasion') => {
+    const now = new Date();
+    const event = {
+      id: `sim-${Date.now()}-${Math.random()}`,
+      timestamp: now.toISOString(),
+      type: type,
+      isSimulated: true
+    };
+    setSimulatedEvents(prev => [...prev.slice(-100), event]);
+  }, []);
 
   // Process traffic feed for new alerts
   useEffect(() => {
@@ -112,11 +125,15 @@ export const AlertProvider = ({ children }) => {
     }
   }, [trafficFeed, lastSeenTime, playAlertSound]);
 
-  // Auto-dismiss toasts every 5 seconds
+  // Auto-dismiss toasts every 5 seconds & prune simulated events > 60s old
   useEffect(() => {
     const interval = setInterval(() => {
       const now = Date.now();
       setToasts(prev => prev.filter(t => now - t.createTime < 5000));
+      setSimulatedEvents(prev => prev.filter(e => {
+        const time = new Date(e.timestamp).getTime();
+        return now - time < 60000; // prune after 60s
+      }));
     }, 1000);
     return () => clearInterval(interval);
   }, []);
@@ -139,6 +156,9 @@ export const AlertProvider = ({ children }) => {
       activeFlashes,
       toasts,
       dismissToast,
+      // Simulated traffic system
+      simulatedEvents,
+      addSimulatedEvent,
       // Expose general state from useTrafficPolling
       trafficFeed, 
       modelStats, 

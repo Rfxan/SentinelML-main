@@ -1,67 +1,56 @@
-import { useState, useEffect } from 'react';
-
-const POLLING_INTERVAL = 2500;
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000';
+import { useState, useEffect, useMemo } from 'react';
+import { useAlerts } from './useAlerts';
 
 export function useAttackTrends(windowSeconds = 15) {
-  const [data, setData] = useState([]);
+  const { trafficFeed, simulatedEvents } = useAlerts();
+  
+  // Memoize the data processing to avoid heavy recalcs on every re-render
+  const chartData = useMemo(() => {
+    const now = new Date();
+    const buckets = {};
+    
+    // 1. Initialize empty buckets for the requested window
+    for (let i = windowSeconds - 1; i >= 0; i--) {
+      const d = new Date(now.getTime() - i * 1000);
+      const timeKey = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
+      buckets[timeKey] = { time: timeKey, normal: 0, attacks: 0, adversarial: 0 };
+    }
 
-  useEffect(() => {
-    let timeoutId;
-    let isSubscribed = true;
+    const cutoff = new Date(now.getTime() - windowSeconds * 1000);
 
-    const fetchFeed = async () => {
-      try {
-        const url = `${API_BASE}/traffic-feed`;
-        const response = await fetch(url);
-        const feed = await response.json();
+    // 2. Helper to process events into buckets
+    const processEvents = (events) => {
+      if (!events || !Array.isArray(events)) return;
+      
+      events.forEach(event => {
+        if (!event.timestamp) return;
         
-        if (!isSubscribed) return;
-
-        const now = new Date();
-        const buckets = {};
+        // Handle both ISO strings and potentially other formats
+        const eventTime = new Date(event.timestamp.includes('T') ? event.timestamp : event.timestamp.replace(' ', 'T'));
         
-        for (let i = windowSeconds - 1; i >= 0; i--) {
-          const d = new Date(now.getTime() - i * 1000);
-          const timeKey = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
-          buckets[timeKey] = { time: timeKey, normal: 0, attacks: 0, adversarial: 0 };
-        }
-
-        const cutoff = new Date(now.getTime() - windowSeconds * 1000);
-
-        feed.forEach(event => {
-          const eventTime = new Date(event.timestamp.replace(' ', 'T'));
-          if (eventTime >= cutoff) {
-            const timeKey = `${String(eventTime.getHours()).padStart(2, '0')}:${String(eventTime.getMinutes()).padStart(2, '0')}:${String(eventTime.getSeconds()).padStart(2, '0')}`;
-            if (buckets[timeKey]) {
-              if (event.type === 'normal' || event.type === 'train') {
-                buckets[timeKey].normal++;
-              } else if (event.type === 'attack') {
-                buckets[timeKey].attacks++;
-              } else if (event.type === 'evasion' || event.type === 'poison') {
-                buckets[timeKey].adversarial++;
-              }
+        if (eventTime >= cutoff) {
+          const timeKey = `${String(eventTime.getHours()).padStart(2, '0')}:${String(eventTime.getMinutes()).padStart(2, '0')}:${String(eventTime.getSeconds()).padStart(2, '0')}`;
+          
+          if (buckets[timeKey]) {
+            const type = (event.type || '').toLowerCase();
+            if (type === 'normal' || type === 'train') {
+              buckets[timeKey].normal++;
+            } else if (type === 'attack') {
+              buckets[timeKey].attacks++;
+            } else if (type === 'evasion' || type === 'poison' || type === 'poisoning') {
+              buckets[timeKey].adversarial++;
             }
           }
-        });
-
-        setData(Object.values(buckets));
-      } catch (err) {
-        console.error('Failed to fetch traffic feed for trends', err);
-      }
-
-      if (isSubscribed) {
-        timeoutId = setTimeout(fetchFeed, POLLING_INTERVAL);
-      }
+        }
+      });
     };
 
-    fetchFeed();
+    // 3. Process both backend traffic and local simulated events
+    processEvents(trafficFeed);
+    processEvents(simulatedEvents);
 
-    return () => {
-      isSubscribed = false;
-      clearTimeout(timeoutId);
-    };
-  }, [windowSeconds]); // ← fixed: was [] which ignored window changes
+    return Object.values(buckets);
+  }, [trafficFeed, simulatedEvents, windowSeconds]);
 
-  return data;
+  return chartData;
 }

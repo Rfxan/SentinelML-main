@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAlerts } from '../hooks/useAlerts';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000';
 
@@ -53,6 +53,7 @@ export default function AdversarialSimulator() {
   const [result, setResult] = useState(null);
   const [progress, setProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState(0);
+  const { addSimulatedEvent } = useAlerts();
   const logRef = useRef(null);
   const intervalRef = useRef(null);
 
@@ -88,9 +89,11 @@ export default function AdversarialSimulator() {
       if (stepIdx < steps.length) {
         setCurrentStep(stepIdx);
         addLog(randomLog(selected, steps[stepIdx]), stepIdx % 2 === 0 ? 'info' : 'dim');
+        addSimulatedEvent(selected.id === 'pgd' ? 'evasion' : 'attack');
         stepIdx++;
       } else {
         addLog(randomLog(selected, ''), 'dim');
+        addSimulatedEvent(selected.id === 'pgd' ? 'evasion' : 'attack');
       }
     }, 280);
 
