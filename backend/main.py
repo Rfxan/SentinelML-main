@@ -571,6 +571,9 @@ async def simulate(req: SimulateRequest):
         ip = random.choice(IP_POOL)
         used_ips.append(ip)
 
+        if blocker.is_blocked(ip):
+            blocker.unblock_ip(ip)
+
         if req.mode == "normal":
             f = simulator.generate_normal()
             await predict(PredictRequest(features=f, ip=ip))
