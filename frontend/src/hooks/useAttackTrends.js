@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 
 const POLLING_INTERVAL = 2500;
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000';
 
 export function useAttackTrends(windowSeconds = 15) {
   const [data, setData] = useState([]);
@@ -11,7 +12,7 @@ export function useAttackTrends(windowSeconds = 15) {
 
     const fetchFeed = async () => {
       try {
-        const url = `${import.meta.env.VITE_API_URL || '/api'}/traffic-feed`;
+        const url = `${API_BASE}/traffic-feed`;
         const response = await fetch(url);
         const feed = await response.json();
         
@@ -60,7 +61,7 @@ export function useAttackTrends(windowSeconds = 15) {
       isSubscribed = false;
       clearTimeout(timeoutId);
     };
-  }, []);
+  }, [windowSeconds]); // ← fixed: was [] which ignored window changes
 
   return data;
 }
