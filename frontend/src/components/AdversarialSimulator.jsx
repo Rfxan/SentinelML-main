@@ -109,26 +109,35 @@ export default function AdversarialSimulator() {
     setCurrentStep(0);
 
     const activeModes = ATTACKS.filter(a => selectedIds.includes(a.id));
-    const primaryMode = activeModes[0];
-    const steps = primaryMode.steps;
+    const steps = activeModes[0].steps;
+    const targetCount = parseInt(count);
+    let samplesInjected = 0;
     let stepIdx = 0;
-    let prog = 0;
-    addLog(`Launching Multi-Vector Simulation — ${activeModes.length} modes active`, 'system');
+
+    addLog(`Launching Multi-Vector Simulation — Target: ${targetCount} samples`, 'system');
     addLog(`Vectors: ${activeModes.map(a => a.name).join(', ')}`, 'system');
 
     const loop = () => {
       if (phase === 'done' || phase === 'error') return;
 
-      // Infinite Log Cycling & Injection
+      if (samplesInjected >= targetCount) {
+        setProgress(100);
+        setPhase('done');
+        addLog(`Simulation complete — ${samplesInjected} samples processed`, 'success');
+        return;
+      }
+
+      // Log Cycling
       const currentStepIdx = stepIdx % steps.length;
       setCurrentStep(currentStepIdx);
-      
-      // Rotate log sources for variety
       const logSource = activeModes[stepIdx % activeModes.length];
       addLog(randomLog(logSource, steps[currentStepIdx]), stepIdx % 2 === 0 ? 'info' : 'dim');
       
-      // Per-vector randomized injection
+      // Per-vector randomized injection with budget capping
       activeModes.forEach(mode => {
+        const remaining = targetCount - samplesInjected;
+        if (remaining <= 0) return;
+
         const PROFILES = {
           normal: { prob: 0.9, burst: [1, 2] },
           fgsm:   { prob: 0.6, burst: [2, 5] },
@@ -138,19 +147,21 @@ export default function AdversarialSimulator() {
 
         const profile = PROFILES[mode.id] || PROFILES.normal;
         if (Math.random() < profile.prob) {
-          const burstSize = Math.floor(Math.random() * (profile.burst[1] - profile.burst[0] + 1)) + profile.burst[0];
-          for (let i = 0; i < burstSize; i++) {
+          const maxBurst = Math.min(profile.burst[1], Math.ceil(remaining / activeModes.length));
+          const burstSize = Math.max(1, Math.floor(Math.random() * (maxBurst - profile.burst[0] + 1)) + profile.burst[0]);
+          
+          for (let i = 0; i < burstSize && samplesInjected < targetCount; i++) {
             let type = mode.id === 'normal' ? 'normal' :
                        mode.id === 'fgsm' ? 'fgsm' :
                        mode.id === 'pgd' ? 'evasion' : 'attack';
             addSimulatedEvent(type);
+            samplesInjected++;
           }
         }
       });
 
-      // Creeping progress (simulates continuous activity)
-      prog = prog >= 98 ? 92 : prog + (Math.random() * 2); 
-      setProgress(prog);
+      // Precise progress tracking
+      setProgress(Math.min((samplesInjected / targetCount) * 100, 99));
 
       stepIdx++;
       const jitterDelay = 150 + Math.random() * 300;
@@ -160,7 +171,7 @@ export default function AdversarialSimulator() {
     loop();
 
     try {
-      const countPerVector = Math.ceil(parseInt(count) / activeModes.length);
+      const countPerVector = Math.ceil(targetCount / activeModes.length);
       await Promise.all(activeModes.map(mode => 
         fetch(`${API_BASE}/simulate`, {
           method: 'POST',
@@ -168,7 +179,6 @@ export default function AdversarialSimulator() {
           body: JSON.stringify({ mode: mode.id, count: countPerVector }),
         })
       ));
-      // No automatic setPhase('done') here to keep it running
     } catch (err) {
       addLog(`INIT ERROR — ${err.message}`, 'error');
       setPhase('error');
