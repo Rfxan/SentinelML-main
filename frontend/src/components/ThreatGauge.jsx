@@ -3,7 +3,10 @@ import React, { useMemo } from 'react';
 const ThreatGauge = ({ feed }) => {
   const recentAttacksParams = useMemo(() => {
     const now = Date.now() / 1000;
-    const recent = feed.filter(f => now - f.time < 60 && ['attack', 'evasion', 'poisoning', 'fgsm'].includes(f.type.toLowerCase()));
+    const recent = feed.filter(f => {
+      const eventTime = f.time || (f.timestamp ? new Date(f.timestamp.includes('T') ? f.timestamp : f.timestamp.replace(' ', 'T')).getTime() / 1000 : 0);
+      return now - eventTime < 60 && ['attack', 'evasion', 'poisoning', 'fgsm'].includes(f.type?.toLowerCase());
+    });
     const count = recent.length;
     
     const maxCount = 100;

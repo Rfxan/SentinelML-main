@@ -57,9 +57,10 @@ export const AlertProvider = ({ children }) => {
       id: `sim-${Date.now()}-${Math.random()}`,
       timestamp: now.toISOString(),
       type: type,
+      time: now.getTime() / 1000,
       isSimulated: true
     };
-    setSimulatedEvents(prev => [...prev.slice(-100), event]);
+    setSimulatedEvents(prev => [...prev.slice(-1000), event]);
   }, []);
 
   // Process traffic feed for new alerts

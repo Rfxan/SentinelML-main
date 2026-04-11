@@ -88,7 +88,7 @@ export default function AdversarialSimulator() {
 
   const addLog = (msg, type = 'info') => {
     const ts = new Date().toISOString().slice(11, 23);
-    setLogs(prev => [...prev.slice(-60), { ts, msg, type, id: Math.random() }]);
+    setLogs(prev => [...prev.slice(-500), { ts, msg, type, id: Math.random() }]);
   };
 
   const reset = () => {

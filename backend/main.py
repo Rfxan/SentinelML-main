@@ -326,7 +326,7 @@ async def health_check():
 
 @app.get("/siem-log")
 async def get_siem_log():
-    entries = list(traffic_feed)[:100]
+    entries = list(traffic_feed)[:500]
     return [
         {
             "timestamp": e.get("timestamp"),
