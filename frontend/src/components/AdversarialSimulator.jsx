@@ -455,9 +455,25 @@ export default function AdversarialSimulator() {
                 <div className="w-2.5 h-2.5 rounded-full bg-red-500/60" />
                 <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/60" />
                 <div className="w-2.5 h-2.5 rounded-full bg-green-500/60" />
-                <span className="ml-2 text-[10px] text-slate-400 dark:text-zinc-600 tracking-widest uppercase">Sentinel // Attack Log</span>
+                <span className="ml-2 text-[10px] text-slate-400 dark:text-zinc-600 tracking-widest uppercase flex items-center gap-2">
+                  Sentinel // Attack Log
+                  {isRunning && (
+                    <motion.span
+                      animate={{ opacity: [0.4, 1, 0.4] }}
+                      transition={{ duration: 1.5, repeat: Infinity }}
+                      className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+                    />
+                  )}
+                </span>
               </div>
-              <div ref={logRef} className="h-[260px] overflow-y-auto p-4 flex flex-col gap-0.5 scrollbar-thin">
+              <div 
+                ref={logRef} 
+                className="h-[260px] overflow-y-auto p-4 flex flex-col gap-0.5 scrollbar-thin relative font-mono"
+                style={{
+                  backgroundImage: `radial-gradient(circle, rgba(0,0,0,0.03) 1px, transparent 1px)`,
+                  backgroundSize: '20px 20px'
+                }}
+              >
                 <AnimatePresence initial={false}>
                   {logs.length === 0 && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-slate-400 dark:text-zinc-600 text-xs">
@@ -471,18 +487,35 @@ export default function AdversarialSimulator() {
                       initial={{ opacity: 0, x: -4 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.15 }}
-                      className="flex gap-3 text-[11px] leading-5"
+                      className="flex gap-3 text-[10px] leading-5 font-mono"
                     >
-                      <span className="text-slate-500 dark:text-zinc-600 flex-shrink-0 tabular-nums">{log.ts}</span>
-                      <span style={{
-                        color:
-                          log.type === 'success' ? '#059669' :
-                          log.type === 'error' ? '#dc2626' :
-                          log.type === 'system' ? activeColor :
-                          log.type === 'dim' ? '#94a3b8' :
-                          '#334155',
-                      }} className="dark:text-slate-200 transition-colors">
-                        {log.msg}
+                      <span className="text-slate-400 dark:text-zinc-600 flex-shrink-0 tabular-nums">[{log.ts.split('.')[0]}]</span>
+                      <span className="dark:text-slate-300 transition-colors whitespace-pre-wrap">
+                        {(() => {
+                          const parts = log.msg.match(/^(\[[A-Z]+\])\s(.*)/);
+                          if (!parts) return (
+                            <span style={{
+                              color: log.type === 'success' ? '#10b981' :
+                                     log.type === 'error' ? '#ef4444' :
+                                     log.type === 'system' ? activeColor : '#94a3b8'
+                            }}>
+                              {log.msg}
+                            </span>
+                          );
+                          const [, prefix, body] = parts;
+                          const prefixColor = 
+                            prefix === '[ML]' ? '#3b82f6' : 
+                            prefix === '[SYS]' ? '#f59e0b' : 
+                            prefix === '[NET]' ? '#8b5cf6' : 
+                            prefix === '[ADV]' ? '#ef4444' : 
+                            prefix === '[DEF]' ? '#10b981' : '#94a3b8';
+                          return (
+                            <>
+                              <span style={{ color: prefixColor, fontWeight: '700' }}>{prefix}</span>
+                              <span style={{ color: log.type === 'dim' ? '#64748b' : 'inherit' }}> {body}</span>
+                            </>
+                          );
+                        })()}
                       </span>
                     </motion.div>
                   ))}
