@@ -95,7 +95,7 @@ const AlertCard = ({ alert, index }) => {
 
       <div className="shrink-0 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-medium">
         <Clock size={14} className="text-slate-400" />
-        {new Date(alert.timestamp || alert.time * 1000).toLocaleString()}
+        {new Date(alert.time ? alert.time * 1000 : alert.timestamp).toLocaleString([], { hour12: false })}
       </div>
     </motion.div>
   );

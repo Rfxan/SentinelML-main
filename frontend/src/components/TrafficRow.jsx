@@ -44,7 +44,7 @@ const TrafficRow = ({ row, onClick }) => {
             {getIcon(type)}
           </div>
           <span className="opacity-80">
-            {new Date(row.timestamp || row.time * 1000).toLocaleTimeString()}
+            {new Date(row.time ? row.time * 1000 : row.timestamp).toLocaleTimeString([], { hour12: false })}
           </span>
         </div>
       </td>

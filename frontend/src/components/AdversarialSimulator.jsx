@@ -87,7 +87,8 @@ export default function AdversarialSimulator() {
   useEffect(() => () => clearTimeout(intervalRef.current), []);
 
   const addLog = (msg, type = 'info') => {
-    const ts = new Date().toISOString().slice(11, 23);
+    const now = new Date();
+    const ts = now.toLocaleTimeString('en-GB', { hour12: false }) + '.' + String(now.getMilliseconds()).padStart(3, '0');
     setLogs(prev => [...prev.slice(-500), { ts, msg, type, id: Math.random() }]);
   };
 

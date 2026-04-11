@@ -242,6 +242,7 @@ async def predict(req: PredictRequest):
     event = {
         "id": str(uuid.uuid4()),
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "time": time.time(),
         "ip": req.ip,
         "type": event_type,
         "label_name": label_name,
@@ -299,6 +300,7 @@ async def train_endpoint(req: TrainRequest):
     event = {
         "id": str(uuid.uuid4()),
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "time": time.time(),
         "ip": req.ip,
         "type": "poison" if is_poisoning else "train",
         "confidence": 1.0,

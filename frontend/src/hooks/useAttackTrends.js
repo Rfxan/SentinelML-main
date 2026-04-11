@@ -25,8 +25,8 @@ export function useAttackTrends(windowSeconds = 15) {
       events.forEach(event => {
         if (!event.timestamp) return;
         
-        // Handle both ISO strings and potentially other formats
-        const eventTime = new Date(event.timestamp.includes('T') ? event.timestamp : event.timestamp.replace(' ', 'T'));
+        // Prioritize unix time for accuracy, fallback to string parsing
+        const eventTime = event.time ? new Date(event.time * 1000) : new Date(event.timestamp.includes('T') ? event.timestamp : event.timestamp.replace(' ', 'T'));
         
         if (eventTime >= cutoff) {
           const timeKey = `${String(eventTime.getHours()).padStart(2, '0')}:${String(eventTime.getMinutes()).padStart(2, '0')}:${String(eventTime.getSeconds()).padStart(2, '0')}`;

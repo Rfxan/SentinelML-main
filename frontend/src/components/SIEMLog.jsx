@@ -54,7 +54,9 @@ const SIEMLog = () => {
 
               return (
                 <tr key={i} className="border-b border-slate-200 dark:border-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-900/50 transition-colors">
-                  <td className="py-3 px-4 whitespace-nowrap text-slate-600 dark:text-slate-400 text-xs font-mono">{log.timestamp}</td>
+                  <td className="py-3 px-4 whitespace-nowrap text-slate-600 dark:text-slate-400 text-xs font-mono">
+                    {log.time ? new Date(log.time * 1000).toLocaleString([], { hour12: false }) : log.timestamp}
+                  </td>
                   <td className="py-3 px-4 text-emerald-600 dark:text-emerald-500 font-mono text-xs">{log.incident_id}</td>
                   <td className="py-3 px-4 text-blue-500 dark:text-blue-400 font-medium">{log.source_ip}</td>
                   <td className="py-3 px-4 text-slate-700 dark:text-slate-300 uppercase text-xs font-bold">{log.event_type}</td>
