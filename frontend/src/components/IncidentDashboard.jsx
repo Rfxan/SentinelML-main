@@ -168,7 +168,7 @@ const IncidentDashboard = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-xs text-slate-500 whitespace-nowrap">
-                    {inc.last_seen}
+                    {inc.last_seen_time ? new Date(inc.last_seen_time * 1000).toLocaleString([], { hour12: false }) : inc.last_seen}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <button className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors text-slate-400 dark:text-slate-500 group-hover:text-emerald-500 dark:group-hover:text-emerald-400">

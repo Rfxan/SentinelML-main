@@ -48,7 +48,10 @@ const LogsPanel = ({ logs }) => {
                 className="animate-slide-in-top flex gap-4 border-b border-black/5 dark:border-white/5 pb-2 last:border-0"
               >
                 <span className="text-slate-400 dark:text-slate-500 shrink-0">
-                  [{new Date(log.time ? log.time * 1000 : log.timestamp || Date.now()).toLocaleTimeString([], { hour12: false })}]
+                  [{(() => {
+                    const d = new Date(log.time ? log.time * 1000 : log.timestamp || Date.now());
+                    return d.toLocaleTimeString('en-GB', { hour12: false }) + '.' + String(d.getMilliseconds()).padStart(3, '0');
+                  })()}]
                 </span>
                 <span className={`font-semibold shrink-0 uppercase tracking-wider ${getLogColor(log.type)}`}>
                   {log.type || 'UNKNOWN'}

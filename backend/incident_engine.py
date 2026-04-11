@@ -57,7 +57,7 @@ def _cleanup_inactive():
     to_resolve = []
     
     for ip, inc in _active_incidents.items():
-        if current_time - inc["_last_seen_ts"] > INCIDENT_TIMEOUT_SEC:
+        if current_time - inc["last_seen_time"] > INCIDENT_TIMEOUT_SEC:
             if inc["status"] != "blocked":
                 inc["status"] = "resolved"
             to_resolve.append(ip)
@@ -85,7 +85,7 @@ def update(event: dict):
             "ip": ip,
             "start_time": event.get("timestamp", time.strftime("%Y-%m-%d %H:%M:%S")),
             "last_seen": event.get("timestamp", time.strftime("%Y-%m-%d %H:%M:%S")),
-            "_last_seen_ts": current_time,
+            "last_seen_time": current_time,
             "event_count": 0,
             "attack_count": 0,
             "evasion_count": 0,
@@ -100,7 +100,7 @@ def update(event: dict):
     # Update counters
     inc["event_count"] += 1
     inc["last_seen"] = event.get("timestamp", time.strftime("%Y-%m-%d %H:%M:%S"))
-    inc["_last_seen_ts"] = current_time
+    inc["last_seen_time"] = current_time
     
     etype = event.get("type", "").lower()
     if etype == "attack":
