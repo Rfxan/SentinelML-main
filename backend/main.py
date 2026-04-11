@@ -79,7 +79,7 @@ adversarial_attacker = None
 train_rate_limiter = None
 
 # Traffic Log
-traffic_feed = deque(maxlen=500)
+traffic_feed = deque(maxlen=1000)
 accepted_training_samples = []
 stats = {
     "total_predictions": 0,
@@ -601,8 +601,8 @@ async def simulate(req: SimulateRequest):
             f = simulator.generate_extraction_probe(probe_type="boundary" if req.mode == "extraction_blitz" else "coverage")
             await predict(PredictRequest(features=f, ip=ip))
 
-        # Randomized delay (jitter) between 10ms and 150ms
-        await asyncio.sleep(random.uniform(0.01, 0.15))
+        # Reduced jitter for better throughput on high-count simulations
+        await asyncio.sleep(random.uniform(0.005, 0.04))
 
     return {"status": "simulated", "count": count, "ips": used_ips}
 

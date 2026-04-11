@@ -6,7 +6,7 @@ const ThreatGauge = ({ feed }) => {
     const recent = feed.filter(f => now - f.time < 60 && ['attack', 'evasion', 'poisoning', 'fgsm'].includes(f.type.toLowerCase()));
     const count = recent.length;
     
-    const maxCount = 15;
+    const maxCount = 100;
     const value = Math.min(count, maxCount);
     const percentage = (value / maxCount) * 100;
     

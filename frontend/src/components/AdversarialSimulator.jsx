@@ -164,7 +164,9 @@ export default function AdversarialSimulator() {
       setProgress(Math.min((samplesInjected / targetCount) * 100, 99));
 
       stepIdx++;
-      const jitterDelay = 150 + Math.random() * 300;
+      // Intelligent jitter: scale down delay for higher counts to keep UI responsive
+      const baseDelay = targetCount > 100 ? 40 : targetCount > 50 ? 80 : 150;
+      const jitterDelay = baseDelay + Math.random() * (baseDelay * 2);
       intervalRef.current = setTimeout(loop, jitterDelay);
     };
 
@@ -331,18 +333,18 @@ export default function AdversarialSimulator() {
               <input
                 type="range"
                 min="1"
-                max="50"
+                max="400"
                 value={count}
                 disabled={isRunning}
                 onChange={e => setCount(parseInt(e.target.value))}
                 className="w-full h-1 rounded-full appearance-none cursor-pointer disabled:opacity-40"
                 style={{
                   accentColor: activeColor,
-                  background: `linear-gradient(to right, ${activeColor} ${(count / 50) * 100}%, rgba(0,0,0,0.05) 0%)`,
+                  background: `linear-gradient(to right, ${activeColor} ${(count / 400) * 100}%, rgba(0,0,0,0.05) 0%)`,
                 }}
               />
               <div className="flex justify-between text-[10px] text-slate-400 dark:text-zinc-700 mt-1">
-                <span>1</span><span>25</span><span>50</span>
+                <span>1</span><span>100</span><span>200</span><span>300</span><span>400</span>
               </div>
             </div>
 
