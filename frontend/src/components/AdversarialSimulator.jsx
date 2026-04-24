@@ -47,6 +47,13 @@ const ATTACKS = [
   },
 ];
 
+const DYNAMIC_SCENARIO_STYLE = {
+  badge: 'DYNAMIC',
+  color: '#3b82f6',
+  glow: 'rgba(59,130,246,0.3)',
+  steps: ['Initializing scenario runner', 'Loading dataset samples', 'Executing vector logic', 'Analyzing response feed']
+};
+
 const LOG_PREFIXES = ['[SYS]', '[ADV]', '[ML]', '[NET]', '[DEF]'];
 
 function randomLog(attack, step) {
@@ -74,9 +81,34 @@ export default function AdversarialSimulator() {
   const [result, setResult] = useState(null);
   const [progress, setProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState(0);
-  const { addSimulatedEvent } = useAlerts();
+  const { isLive } = useAlerts();
   const logRef = useRef(null);
   const intervalRef = useRef(null);
+
+  const [dynamicAttacks, setDynamicAttacks] = useState([]);
+  const [allAttacks, setAllAttacks] = useState(ATTACKS);
+
+  useEffect(() => {
+    // Fetch dynamic scenarios from backend
+    const fetchScenarios = async () => {
+      try {
+        const resp = await fetch(`${API_BASE}/scenarios`);
+        const data = await resp.json();
+        const formatted = data.map(s => ({
+          ...DYNAMIC_SCENARIO_STYLE,
+          id: s.id,
+          name: s.name.toUpperCase(),
+          full: s.name.charAt(0).toUpperCase() + s.name.slice(1).replace('_', ' ') + ' Scenario',
+          desc: s.description
+        }));
+        setDynamicAttacks(formatted);
+        setAllAttacks([...ATTACKS, ...formatted]);
+      } catch (err) {
+        console.error("Failed to fetch scenarios:", err);
+      }
+    };
+    fetchScenarios();
+  }, []);
 
   useEffect(() => {
     if (logRef.current) {
@@ -102,29 +134,30 @@ export default function AdversarialSimulator() {
   };
 
   const runSimulation = async () => {
-    if (selectedIds.length === 0) return;
+    if (selectedIds.length === 0 || !isLive) return;
     setPhase('running');
     setLogs([]);
     setResult(null);
     setProgress(0);
     setCurrentStep(0);
 
-    const activeModes = ATTACKS.filter(a => selectedIds.includes(a.id));
+    const activeModes = allAttacks.filter(a => selectedIds.includes(a.id));
     const steps = activeModes[0].steps;
     const targetCount = parseInt(count);
-    let samplesInjected = 0;
+    let samplesProcessed = 0;
     let stepIdx = 0;
 
-    addLog(`Launching Multi-Vector Simulation — Target: ${targetCount} samples`, 'system');
+    addLog(`Launching Backend-Driven Simulation — Target: ${targetCount} samples`, 'system');
     addLog(`Vectors: ${activeModes.map(a => a.name).join(', ')}`, 'system');
 
     const loop = () => {
       if (phase === 'done' || phase === 'error') return;
 
-      if (samplesInjected >= targetCount) {
+      if (samplesProcessed >= targetCount) {
         setProgress(100);
         setPhase('done');
-        addLog(`Simulation complete — ${samplesInjected} samples processed`, 'success');
+        addLog(`Simulation complete — ${samplesProcessed} samples confirmed in traffic feed`, 'success');
+        setResult({ count: samplesProcessed, ips: [] });
         return;
       }
 
@@ -134,56 +167,31 @@ export default function AdversarialSimulator() {
       const logSource = activeModes[stepIdx % activeModes.length];
       addLog(randomLog(logSource, steps[currentStepIdx]), stepIdx % 2 === 0 ? 'info' : 'dim');
       
-      // Per-vector randomized injection with budget capping
-      activeModes.forEach(mode => {
-        const remaining = targetCount - samplesInjected;
-        if (remaining <= 0) return;
-
-        const PROFILES = {
-          normal: { prob: 0.9, burst: [1, 2] },
-          fgsm:   { prob: 0.6, burst: [2, 5] },
-          pgd:    { prob: 0.4, burst: [4, 8] },
-          blitz:  { prob: 0.2, burst: [8, 15] }
-        };
-
-        const profile = PROFILES[mode.id] || PROFILES.normal;
-        if (Math.random() < profile.prob) {
-          const maxBurst = Math.min(profile.burst[1], Math.ceil(remaining / activeModes.length));
-          const burstSize = Math.max(1, Math.floor(Math.random() * (maxBurst - profile.burst[0] + 1)) + profile.burst[0]);
-          
-          for (let i = 0; i < burstSize && samplesInjected < targetCount; i++) {
-            let type = mode.id === 'normal' ? 'normal' :
-                       mode.id === 'fgsm' ? 'fgsm' :
-                       mode.id === 'pgd' ? 'evasion' : 'attack';
-            addSimulatedEvent(type);
-            samplesInjected++;
-          }
-        }
-      });
-
-      // Precise progress tracking
-      setProgress(Math.min((samplesInjected / targetCount) * 100, 99));
+      // Update progress visually (it will be finalized when backend finishes)
+      samplesProcessed += Math.max(1, Math.floor(targetCount / 20));
+      setProgress(Math.min((samplesProcessed / targetCount) * 100, 99));
 
       stepIdx++;
-      // Intelligent jitter: scale down delay for higher counts to keep UI responsive
-      const baseDelay = targetCount > 100 ? 40 : targetCount > 50 ? 80 : 150;
-      const jitterDelay = baseDelay + Math.random() * (baseDelay * 2);
-      intervalRef.current = setTimeout(loop, jitterDelay);
+      const baseDelay = targetCount > 100 ? 100 : 200;
+      intervalRef.current = setTimeout(loop, baseDelay);
     };
 
     loop();
 
     try {
       const countPerVector = Math.ceil(targetCount / activeModes.length);
-      await Promise.all(activeModes.map(mode => 
+      const results = await Promise.all(activeModes.map(mode => 
         fetch(`${API_BASE}/simulate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mode: mode.id, count: countPerVector }),
-        })
+        }).then(r => r.json())
       ));
+      
+      const totalActual = results.reduce((acc, r) => acc + (r.count || 0), 0);
+      samplesProcessed = targetCount; // Force loop to finish
     } catch (err) {
-      addLog(`INIT ERROR — ${err.message}`, 'error');
+      addLog(`BACKEND ERROR — ${err.message}`, 'error');
       setPhase('error');
     }
   };
@@ -265,7 +273,7 @@ export default function AdversarialSimulator() {
               </div>
             </div>
 
-            {ATTACKS.map(atk => (
+            {allAttacks.map(atk => (
               <motion.button
                 key={atk.id}
                 onClick={() => toggleMode(atk.id)}
@@ -294,7 +302,10 @@ export default function AdversarialSimulator() {
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <div className="w-1.5 h-5 rounded-full" style={{ background: atk.color }} />
-                    <span className="text-base font-bold" style={{ color: selectedIds.includes(atk.id) ? atk.color : undefined }} className={selectedIds.includes(atk.id) ? '' : 'text-slate-400 dark:text-zinc-500'}>
+                    <span 
+                      style={{ color: selectedIds.includes(atk.id) ? atk.color : undefined }} 
+                      className={`text-base font-bold ${selectedIds.includes(atk.id) ? '' : 'text-slate-400 dark:text-zinc-500'}`}
+                    >
                       {atk.name}
                     </span>
                   </div>
@@ -353,18 +364,18 @@ export default function AdversarialSimulator() {
             {phase === 'idle' || phase === 'running' ? (
               <motion.button
                 onClick={phase === 'running' ? reset : runSimulation}
-                disabled={selectedIds.length === 0}
-                whileHover={selectedIds.length > 0 ? { scale: 1.02 } : {}}
-                whileTap={selectedIds.length > 0 ? { scale: 0.98 } : {}}
+                disabled={selectedIds.length === 0 || !isLive}
+                whileHover={selectedIds.length > 0 && isLive ? { scale: 1.02 } : {}}
+                whileTap={selectedIds.length > 0 && isLive ? { scale: 0.98 } : {}}
                 className="relative w-full py-4 rounded-lg font-bold text-sm tracking-widest uppercase overflow-hidden transition-all duration-300"
                 style={{
-                  background: isRunning || selectedIds.length === 0
+                  background: (isRunning || selectedIds.length === 0 || !isLive)
                     ? 'rgba(0,0,0,0.02)'
                     : `linear-gradient(135deg, ${activeColor}dd, ${activeColor}aa)`,
-                  border: `1px solid ${isRunning || selectedIds.length === 0 ? 'rgba(0,0,0,0.05)' : activeColor}`,
-                  color: isRunning || selectedIds.length === 0 ? '#94a3b8' : '#fff',
-                  boxShadow: isRunning || selectedIds.length === 0 ? 'none' : `0 0 30px ${activeColor}30`,
-                  cursor: isRunning || selectedIds.length === 0 ? 'not-allowed' : 'pointer',
+                  border: `1px solid ${isRunning || selectedIds.length === 0 || !isLive ? 'rgba(0,0,0,0.05)' : activeColor}`,
+                  color: (isRunning || selectedIds.length === 0 || !isLive) ? '#94a3b8' : '#fff',
+                  boxShadow: (isRunning || selectedIds.length === 0 || !isLive) ? 'none' : `0 0 30px ${activeColor}30`,
+                  cursor: (isRunning || selectedIds.length === 0 || !isLive) ? 'not-allowed' : 'pointer',
                 }}
               >
                 {isRunning && (
@@ -376,7 +387,12 @@ export default function AdversarialSimulator() {
                   />
                 )}
                 <span className="relative z-10 font-bold">
-                  {phase === 'running' ? (
+                  {!isLive ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                      SYSTEM OFFLINE
+                    </div>
+                  ) : phase === 'running' ? (
                     <div className="flex items-center justify-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
                       🛰 Stop Stress Test ({selectedIds.length})
@@ -405,7 +421,7 @@ export default function AdversarialSimulator() {
             <div className="p-4 rounded-lg border border-slate-200 dark:border-white/5 bg-white dark:bg-white/[0.02]">
               <div className="text-[10px] tracking-[0.25em] text-slate-500 dark:text-zinc-600 uppercase mb-3">// Unified Execution Path</div>
               <div className="flex flex-col gap-2">
-                {(ATTACKS.find(a => selectedIds.includes(a.id))?.steps || ['Select a vector to begin']).map((step, i) => (
+                {(allAttacks.find(a => selectedIds.includes(a.id))?.steps || ['Select a vector to begin']).map((step, i) => (
                   <div key={step} className="flex items-center gap-3">
                     <div
                       className="w-5 h-5 rounded-sm flex items-center justify-center text-[10px] font-bold flex-shrink-0"

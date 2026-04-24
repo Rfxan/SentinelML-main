@@ -103,6 +103,7 @@ class TrainRequest(BaseModel):
 class SimulateRequest(BaseModel):
     mode: str
     count: Optional[int] = 1
+    ip: Optional[str] = None
 
 IP_POOL = [
     "45.12.23.8",     # Europe
@@ -570,7 +571,7 @@ async def simulate(req: SimulateRequest):
     used_ips = []
 
     for _ in range(count):
-        ip = random.choice(IP_POOL)
+        ip = req.ip or simulator.get_random_ip()
         used_ips.append(ip)
 
         if blocker.is_blocked(ip):
@@ -602,11 +603,22 @@ async def simulate(req: SimulateRequest):
         elif req.mode in ("extraction", "extraction_blitz"):
             f = simulator.generate_extraction_probe(probe_type="boundary" if req.mode == "extraction_blitz" else "coverage")
             await predict(PredictRequest(features=f, ip=ip))
+        elif req.mode in simulator.scenarios:
+            # Custom dynamic scenarios
+            scenario = simulator.scenarios[req.mode]
+            await scenario.run(simulator, count=1, predict_fn=predict, train_fn=train_endpoint, ip=ip)
 
         # Reduced jitter for better throughput on high-count simulations
         await asyncio.sleep(random.uniform(0.005, 0.04))
 
     return {"status": "simulated", "count": count, "ips": used_ips}
+
+@app.get("/scenarios")
+async def get_scenarios():
+    return [
+        {"id": name, "name": getattr(s, "name", name), "description": getattr(s, "description", "")}
+        for name, s in simulator.scenarios.items()
+    ]
 
 @app.get("/incidents")
 async def get_incidents():
