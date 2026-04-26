@@ -10,6 +10,7 @@ import ModelHealth from './ModelHealth';
 import DriftAlerts from './DriftAlerts';
 import RateLimiterPanel from './RateLimiterPanel';
 import AIInsights from './AIInsights';
+import ThreatMap from './ThreatMap';
 const Dashboard = ({ data }) => {
   const { trafficFeed, modelStats, blockedIPs } = data;
 
@@ -55,7 +56,14 @@ const Dashboard = ({ data }) => {
   return (
     <div className="flex flex-col gap-6 w-full max-w-7xl mx-auto">
       {/* HERO COMPONENT */}
-      <ThreatScoreCard />
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+        <div className="lg:col-span-1">
+          <ThreatScoreCard />
+        </div>
+        <div className="lg:col-span-3">
+          <ThreatMap attackerProfiles={data.attackerProfiles || []} />
+        </div>
+      </div>
 
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

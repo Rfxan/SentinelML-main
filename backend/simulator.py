@@ -9,6 +9,11 @@ from typing import List, Dict, Any, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
+# Threat range IPs for deterministic demo behavior
+TOR_IPS = [f"185.220.101.{i}" for i in range(10, 20)]
+SCANNER_IPS = [f"45.33.32.{i}" for i in range(50, 60)]
+POISON_IPS = [f"103.21.244.{i}" for i in range(1, 6)]
+
 class Simulator:
     def __init__(self):
         self.continuous_indices = [0, 4, 5, 9, 10, 11, 12, 13, 14, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
@@ -76,8 +81,15 @@ class Simulator:
             except Exception as e:
                 logger.error(f"Failed to load scenario {file}: {e}")
 
-    def get_random_ip(self):
-        return f"{random.randint(1, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(1, 255)}"
+    def get_random_ip(self, mode="normal"):
+        if mode == "blitz" or mode == "attack":
+            return random.choice(SCANNER_IPS)
+        if mode == "evasion" or mode == "fgsm" or mode == "pgd":
+            return random.choice(TOR_IPS)
+        if mode == "poison":
+            return random.choice(POISON_IPS)
+            
+        return f"{random.randint(1, 223)}.{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(1, 255)}"
 
     def generate_normal(self) -> List[float]:
         if self.normal_samples is not None and len(self.normal_samples) > 0:
@@ -101,12 +113,13 @@ class Simulator:
         features[24] = 1.0 # serror_rate
         return features
 
-    def generate_evasion(self) -> List[float]:
+    def generate_evasion(self, escalate=False) -> List[float]:
         features = self.generate_attack()
         # Small perturbations to continuous features to try and bypass decision boundary
+        factor = 0.5 if escalate else 0.2
         for idx in self.continuous_indices:
             # Huge variance added to break ML assumption
-            features[idx] += random.choice([-1, 1]) * random.uniform(0.1, 0.5)
+            features[idx] += random.choice([-1, 1]) * random.uniform(0.1, factor)
         return features
 
     def generate_poison(self) -> Tuple[List[float], int]:
@@ -116,7 +129,8 @@ class Simulator:
 
     def generate_blitz(self):
         strategies = ["normal", "evasion", "poison", "attack"]
-        choice = random.choice(strategies)
+        weights = [0.2, 0.3, 0.1, 0.4]
+        choice = random.choices(strategies, weights=weights)[0]
         if choice == "normal":
             return self.generate_normal(), "normal"
         elif choice == "evasion":

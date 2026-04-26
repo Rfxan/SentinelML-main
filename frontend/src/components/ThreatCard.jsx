@@ -29,14 +29,14 @@ const ThreatCard = ({ ipData, isNew, onUnblock }) => {
       layout
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => { setIsHovered(false); setIsConfirming(false); }}
-      className={`relative bg-[#1A1F2B] border rounded-2xl p-5 overflow-hidden transition-all duration-300 ${
-        isHovered ? 'shadow-[0_0_20px_rgba(239,68,68,0.15)] border-red-500/50' : 'border-white/10'
+      className={`relative bg-white dark:bg-[#1A1F2B] border rounded-2xl p-5 overflow-hidden transition-all duration-300 ${
+        isHovered ? 'shadow-[0_0_20px_rgba(239,68,68,0.15)] border-red-500/50' : 'border-slate-200 dark:border-white/10'
       }`}
     >
       {/* Neon glow animation for new threats */}
       {isNew && (
         <motion.div
-          animate={{ opacity: [0.1, 0.4, 0.1] }}
+          animate={{ opacity: [0.05, 0.2, 0.05] }}
           transition={{ repeat: Infinity, duration: 2 }}
           className="absolute inset-0 bg-red-500 pointer-events-none mix-blend-screen"
         />
@@ -52,26 +52,35 @@ const ThreatCard = ({ ipData, isNew, onUnblock }) => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Server className="w-5 h-5 text-slate-400" />
-            <h3 className="font-mono text-lg font-bold text-white">{ipData.ip}</h3>
+            <h3 className="font-mono text-lg font-black text-red-500">{ipData.ip}</h3>
           </div>
+          <div className="flex items-center gap-1 bg-red-500/10 text-red-500 px-2 py-0.5 rounded border border-red-500/20 text-[10px] font-black">
+             <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+             LIVE BLOCK
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1">
+           <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Strike Reason</span>
+           <span className="text-slate-700 dark:text-slate-200 font-medium text-sm">
+             {ipData.reason || 'Pattern Match'}
+           </span>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-slate-900/50 rounded-lg p-2 flex flex-col gap-1">
-            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Type</span>
-            <span className="text-red-400 font-medium text-sm flex items-center gap-1">
-              <Shield size={12} /> {ipData.reason || 'Attack Pattern'}
-            </span>
+          <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-2 flex flex-col gap-0.5 border border-slate-100 dark:border-white/5">
+            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Intercepted</span>
+            <span className="text-slate-900 dark:text-slate-200 font-black text-base">{ipData.total_packets_intercepted} pkts</span>
           </div>
-          <div className="bg-slate-900/50 rounded-lg p-2 flex flex-col gap-1">
-            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Attempts</span>
-            <span className="text-slate-200 font-medium text-sm">{ipData.strikes}</span>
+          <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-2 flex flex-col gap-0.5 border border-slate-100 dark:border-white/5">
+            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Isolation</span>
+            <span className="text-red-500 font-black text-base">STRICT</span>
           </div>
         </div>
 
-        <div className="flex items-center justify-between mt-2 pt-4 border-t border-white/5">
-          <div className="flex items-center gap-1 text-xs text-slate-500 font-mono">
-            <Clock size={12} /> Blocked {new Date().toLocaleTimeString()}
+        <div className="flex items-center justify-between mt-2 pt-4 border-t border-slate-100 dark:border-white/5">
+          <div className="flex items-center gap-1 text-[10px] text-slate-400 font-mono">
+            <Clock size={10} /> {ipData.blocked_at || 'Recently'}
           </div>
           
           <div className="relative">
@@ -83,9 +92,9 @@ const ThreatCard = ({ ipData, isNew, onUnblock }) => {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
                   onClick={() => setIsConfirming(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-[10px] font-black uppercase tracking-wider transition-colors border border-slate-200 dark:border-white/5"
                 >
-                  <Unlock size={14} /> Unblock
+                  <Unlock size={12} /> Unblock
                 </motion.button>
               ) : (
                 <motion.button
@@ -94,9 +103,9 @@ const ThreatCard = ({ ipData, isNew, onUnblock }) => {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
                   onClick={handleUnblock}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/40 text-red-400 border border-red-500/50 text-xs font-semibold transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500 text-white text-[10px] font-black uppercase tracking-wider transition-colors shadow-lg shadow-red-500/20"
                 >
-                  Confirm?
+                  Confirm
                 </motion.button>
               )}
             </AnimatePresence>

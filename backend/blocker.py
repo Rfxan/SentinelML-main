@@ -2,26 +2,50 @@ import time
 from threading import Lock
 
 class Blocker:
-    def __init__(self, strike_threshold=3):
+    def __init__(self, strike_threshold=3, on_block_cb=None):
         self.strike_threshold = strike_threshold
-        self.strikes = {} # {ip: strike_count}
-        self.blocked_ips = {} # {ip: {timestamp, reason, strike_count}}
+        self.strikes = {} # {ip: [ {type, timestamp} ]}
+        self.blocked_ips = {} # {ip: {timestamp, reason, strike_count, details}}
+        self.on_block_cb = on_block_cb
         self.lock = Lock()
 
-    def record_strike(self, ip, is_adversarial=False, reason="Adversarial behavior"):
+    def record_strike(self, ip, is_adversarial=False, attack_type="attack", reason="Adversarial behavior"):
         with self.lock:
             if ip in self.blocked_ips:
                 return True
             
             if is_adversarial:
-                self.strikes[ip] = self.strikes.get(ip, 0) + 1
+                if ip not in self.strikes:
+                    self.strikes[ip] = []
                 
-                if self.strikes[ip] >= self.strike_threshold:
+                self.strikes[ip].append({
+                    "type": attack_type,
+                    "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+                })
+                
+                strike_count = len(self.strikes[ip])
+                
+                if strike_count >= self.strike_threshold:
+                    # Build detailed reason: "3-strike policy: evasion x2 + standard_attack x1"
+                    counts = {}
+                    for s in self.strikes[ip]:
+                        t = s["type"]
+                        counts[t] = counts.get(t, 0) + 1
+                    
+                    reason_parts = [f"{t} x{c}" for t, c in counts.items()]
+                    detailed_reason = f"{self.strike_threshold}-strike policy: " + " + ".join(reason_parts)
+                    
                     self.blocked_ips[ip] = {
                         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-                        "reason": reason,
-                        "strike_count": self.strikes[ip]
+                        "reason": detailed_reason,
+                        "strike_count": strike_count,
+                        "details": self.strikes[ip]
                     }
+                    
+                    # Trigger honeypot callback if provided
+                    if self.on_block_cb:
+                        self.on_block_cb(ip, attack_type)
+                        
                     return True
             return False
 
@@ -37,7 +61,8 @@ class Blocker:
         with self.lock:
             if ip in self.blocked_ips:
                 del self.blocked_ips[ip]
-                self.strikes[ip] = 0
+                if ip in self.strikes:
+                    self.strikes[ip] = []
                 return True
             return False
 
@@ -52,5 +77,5 @@ class Blocker:
             self.blocked_ips[ip] = {
                 "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
                 "reason": reason,
-                "strike_count": self.strikes.get(ip, 0)
+                "strike_count": len(self.strikes.get(ip, []))
             }

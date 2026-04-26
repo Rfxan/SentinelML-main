@@ -39,9 +39,8 @@ export function useBlockedIPs() {
 
   const pollData = useCallback(async () => {
     try {
-      const res = await axios.get(`${API_BASE}/blocked-ips`);
-      const rawData = res.data || {};
-      const currentList = Array.isArray(rawData) ? rawData : Object.entries(rawData).map(([ip, details]) => ({ ip, ...details }));
+      const res = await axios.get(`${API_BASE}/blocked-ips-detail`);
+      const currentList = res.data || [];
       
       setBlockedIPs((prev) => {
         // Find new IPs

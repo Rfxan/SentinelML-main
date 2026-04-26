@@ -7,7 +7,9 @@ export const useTrafficPolling = () => {
   const [data, setData] = useState({
     trafficFeed: [],
     modelStats: null,
-    blockedIPs: {}
+    blockedIPs: [],
+    attackerProfiles: [],
+    honeypotLog: []
   });
   const [isLive, setIsLive] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -17,16 +19,20 @@ export const useTrafficPolling = () => {
 
     const fetchAll = async () => {
       try {
-        const [feedRes, statsRes, blockedRes] = await Promise.all([
+        const [feedRes, statsRes, blockedRes, profilesRes, honeypotRes] = await Promise.all([
           axios.get(`${API_BASE}/traffic-feed`),
           axios.get(`${API_BASE}/model-stats`),
-          axios.get(`${API_BASE}/blocked-ips`)
+          axios.get(`${API_BASE}/blocked-ips-detail`),
+          axios.get(`${API_BASE}/attacker-profiles`),
+          axios.get(`${API_BASE}/honeypot-log`)
         ]);
         
         setData({
           trafficFeed: feedRes.data,
           modelStats: statsRes.data,
-          blockedIPs: blockedRes.data
+          blockedIPs: blockedRes.data,
+          attackerProfiles: profilesRes.data,
+          honeypotLog: honeypotRes.data
         });
         setIsLive(true);
       } catch (err) {
@@ -49,6 +55,8 @@ export const useTrafficPolling = () => {
     trafficFeed: data.trafficFeed, 
     modelStats: data.modelStats, 
     blockedIPs: data.blockedIPs, 
+    attackerProfiles: data.attackerProfiles,
+    honeypotLog: data.honeypotLog,
     isLive, 
     isLoading 
   };

@@ -61,7 +61,9 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://sentinel-ml-main-1zks.vercel.app",
-        "http://localhost:5173",  # keep for local dev
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:5175",
     ],
     allow_methods=["*"],
     allow_headers=["*"],
@@ -69,10 +71,26 @@ app.add_middleware(
 
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "data", "model.pkl")
 
+# Advanced Stores (Hackathon Hack)
+attacker_profiles = {} # {ip: {events: [], ...}}
+honeypot_log = []
+
+def trigger_honeypot(ip, attack_type):
+    """Triggered when an IP is blocked (3rd strike)."""
+    entry = {
+        "ip": ip,
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "fake_response_sent": True,
+        "decoy_data": "fake_credentials_bundle_v2",
+        "lure_type": "credential_harvest"
+    }
+    honeypot_log.append(entry)
+    logger.info(f"🍯 Honeypot Activated for {ip} after {attack_type}")
+
 # Core Instances
 model = MLModel()
 defender = None
-blocker = Blocker(strike_threshold=3)
+blocker = Blocker(strike_threshold=3, on_block_cb=trigger_honeypot)
 simulator = Simulator()
 extraction_detector = ExtractionDetector(risk_threshold=60)
 adversarial_attacker = None
@@ -219,8 +237,38 @@ async def predict(req: PredictRequest):
 
     # 4. Blocker
     is_attack = pred_label != 0
+    attack_type = "standard_attack"
+    if is_evasion: attack_type = "evasion"
+    
     is_blocked = blocker.record_strike(req.ip, is_adversarial=(is_attack or is_evasion),
-                                       reason="Attack/Evasion detected")
+                                       attack_type=attack_type,
+                                       reason=f"{attack_type.replace('_', ' ').capitalize()} detected")
+
+    # 5. Attacker Profiling
+    if is_attack or is_evasion:
+        if req.ip not in attacker_profiles:
+            attacker_profiles[req.ip] = {
+                "ip": req.ip,
+                "first_seen": time.strftime("%Y-%m-%d %H:%M:%S"),
+                "events": []
+            }
+        
+        # Calculate summary features
+        feats = np.array(req.features)
+        summary = {
+            "min": float(np.min(feats)),
+            "max": float(np.max(feats)),
+            "mean": float(np.mean(feats))
+        }
+        
+        attacker_profiles[req.ip]["events"].append({
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "attack_type": attack_type,
+            "confidence_score": float(confidence),
+            "z_score_max": float(evasion_risk / 10), # scale back to z-score approx
+            "packet_features_summary": summary
+        })
+        attacker_profiles[req.ip]["last_seen"] = time.strftime("%Y-%m-%d %H:%M:%S")
 
     # MITRE tagging
     mitre = get_mitre_tag(pred_label)
@@ -295,7 +343,31 @@ async def train_endpoint(req: TrainRequest):
 
     pred_label, confidence = model.predict(req.features)
     is_poisoning = defender.detect_poisoning(req.features, req.label, pred_label, confidence)
-    is_blocked = blocker.record_strike(req.ip, is_adversarial=is_poisoning, reason="Poisoning detected")
+    
+    attack_type = "poisoning"
+    is_blocked = blocker.record_strike(req.ip, is_adversarial=is_poisoning, 
+                                       attack_type=attack_type,
+                                       reason="Poisoning attempt detected")
+
+    if is_poisoning:
+        if req.ip not in attacker_profiles:
+            attacker_profiles[req.ip] = {
+                "ip": req.ip,
+                "first_seen": time.strftime("%Y-%m-%d %H:%M:%S"),
+                "events": []
+            }
+        
+        feats = np.array(req.features)
+        summary = {"min": float(np.min(feats)), "max": float(np.max(feats)), "mean": float(np.mean(feats))}
+        
+        attacker_profiles[req.ip]["events"].append({
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "attack_type": attack_type,
+            "confidence_score": float(confidence),
+            "z_score_max": 0.0,
+            "packet_features_summary": summary
+        })
+        attacker_profiles[req.ip]["last_seen"] = time.strftime("%Y-%m-%d %H:%M:%S")
 
     geo = await get_geo_info(req.ip)
     event = {
@@ -354,6 +426,8 @@ async def reset_system():
     extraction_detector.reset()
     if train_rate_limiter:
         train_rate_limiter.reset_all()
+    attacker_profiles.clear()
+    honeypot_log.clear()
     stats["total_predictions"] = 0
     stats["attacks_caught"] = 0
     stats["adversarial_attempts"] = 0
@@ -368,6 +442,62 @@ async def get_traffic_feed():
 @app.get("/blocked-ips")
 async def get_blocked_ips():
     return blocker.get_blocked_ips()
+
+@app.get("/blocked-ips-detail")
+async def get_blocked_ips_detail():
+    blocked = blocker.get_blocked_ips()
+    detailed = []
+    for ip, info in blocked.items():
+        # Count all events from profile if it exists
+        total_intercepted = len(attacker_profiles.get(ip, {}).get("events", []))
+        detailed.append({
+            "ip": ip,
+            "blocked_at": info["timestamp"],
+            "reason": info["reason"],
+            "total_packets_intercepted": total_intercepted
+        })
+    return detailed
+
+@app.get("/honeypot-log")
+async def get_honeypot_log_endpoint():
+    return honeypot_log
+
+@app.get("/attacker-profiles")
+async def get_attacker_profiles_endpoint():
+    profiles = []
+    blocked = blocker.get_blocked_ips()
+    
+    for ip, p in attacker_profiles.items():
+        events = p["events"]
+        types = list(set([e["attack_type"] for e in events]))
+        
+        # Derive behaviour pattern
+        if all(e["attack_type"] == events[0]["attack_type"] for e in events):
+            pattern = f"Specialized {events[0]['attack_type'].replace('_', ' ').capitalize()}"
+        elif len(types) > 1:
+            pattern = "Adaptive Threat Actor"
+        else:
+            pattern = "Anomalous Behaviour"
+            
+        # Escalating evasion check
+        evasions = [e for e in events if e["attack_type"] == "evasion"]
+        if len(evasions) >= 2:
+            # Check if z_score_max is increasing
+            z_scores = [e["z_score_max"] for e in evasions]
+            if z_scores[-1] > z_scores[0]:
+                pattern = "Escalating Evasion Pattern"
+
+        profiles.append({
+            "ip": ip,
+            "total_strikes": len(blocker.strikes.get(ip, [])),
+            "is_blocked": ip in blocked,
+            "attack_types_used": types,
+            "first_seen": p["first_seen"],
+            "last_seen": p["last_seen"],
+            "events": events,
+            "behaviour_pattern": pattern
+        })
+    return profiles
 
 @app.post("/block-ip")
 async def manually_block_ip(ip: str = Body(..., embed=True)):
@@ -571,7 +701,7 @@ async def simulate(req: SimulateRequest):
     used_ips = []
 
     for _ in range(count):
-        ip = req.ip or simulator.get_random_ip()
+        ip = req.ip or simulator.get_random_ip(mode=req.mode)
         used_ips.append(ip)
 
         if blocker.is_blocked(ip):

@@ -17,14 +17,17 @@ To defend this project, you need a crystal-clear mental model of how the files w
 * **`backend/defender.py` (The Shield):** The core innovation. It mathematically inspects raw requests *before* the model gets tricked, specifically looking for Evasion (anomalous feature distributions) and Poisoning (malicious data labeled as "normal").
 * **`backend/blocker.py` (The Bouncer):** A thread-safe module enforcing a "3-strike" policy. It blocks IP addresses that repeatedly exhibit adversarial or malicious behavior.
 * **`backend/simulator.py` & `attacker.py`:** `simulator.py` generates synthetic traffic directly from the backend API, while `attacker.py` is a standalone CLI script that replicates a real hacker generating network packets (Normal, Evasion, Poisoning, Blitz).
+* **Attacker Intelligence Engine (New):** A behavioral profiling layer that aggregates multi-strike data into persistent attacker profiles, identifying "Specialized", "Adaptive", or "Escalating" threat patterns.
+* **Honeypot Monitor (New):** A decoy containment system that serves fake credential lures to blocked IPs and logs their interactions in a CRT-style terminal log.
 
 ### Data Flow (Request → Response)
 1. **Ingestion:** A packet arrives at `/predict` with 41 features and an IP address.
 2. **IP Check:** The `Blocker` checks if the IP is banned. If yes, it drops the request instantly (HTTP 403).
 3. **Evasion Check:** The `Defender` analyzes the 41 features. If continuous features deviate significantly from training statistics (Z-score anomaly), it flags an *Evasion* attack.
 4. **Inference:** The `Model` runs a `predict_proba` to classify the packet as normal (0) or attack (1), generating a confidence score.
-5. **Punishment:** If the outcome is an Attack *or* an Evasion, the `Blocker` records a strike against the IP. If strikes = 3, the IP is blacklisted.
-6. **Logging:** The event is logged in the `traffic_feed` with geo-location data, which the React frontend instantly displays.
+5. **Profiling:** If malicious, the `Attacker Intelligence` engine updates the IP's profile, summarizing packet features (min/max/mean) to identify attack signatures.
+6. **Punishment:** If the outcome is an Attack *or* an Evasion, the `Blocker` records a strike. On the 3rd strike, the IP is blacklisted AND the **Honeypot** is triggered, serving a fake data lure to the attacker.
+7. **Logging:** The event is logged in the `traffic_feed` and `honeypot_log`, which the React frontend instantly displays.
 
 ---
 
@@ -61,21 +64,19 @@ Finally, every caught attack or adversarial attempt logs a strike against the or
 * **ACTION:** Run `python attacker.py --mode normal` a few times.
 * "Let's start with normal network traffic. As you can see on the dashboard, the requests come in, they are classified as safe, and the threat meter remains low."
 
-**3. Standard Attack (1:00 - 1:30)**
-* **ACTION:** Run `python attacker.py --mode blitz` (and point out when regular attacks happen) or use the UI 'Simulate Attack' button.
-* "If a standard attack occurs, like a SYN flood, our Random Forest model easily catches it. The UI flashes red, and the traffic log shows 'Attack'."
+**3. Automated Attack Sequence (1:00 - 1:45)**
+* **ACTION:** Click the indigo **"RUN DEMO ATTACK SEQUENCE"** button in the Topbar.
+* "Instead of manual scripts, I'll trigger our automated attack orchestrator. It will now simulate a multi-vector 'Blitz' followed by sophisticated 'Evasion' probes from consistent threat IPs."
+* *Point to the 'Traffic Feed' and the 'Live Threat Map' pulsing with new IPs.*
 
-**4. The Innovation: Evasion & Poisoning (1:30 - 2:30)**
-* **ACTION:** Run `python attacker.py --mode evasion`. 
-* "Now, what if a smart hacker alters their packets slightly to try and trick the AI? Standard models fail here. But watch SentinelML..." 
-* *Point to the UI showing an Evasion caught.* 
-* "Our `Defender` module mathematically caught the statistical anomaly in the packet features before the model could be fooled."
-* **ACTION:** Run `python attacker.py --mode poison`. 
-* "If they try to ruin our model by sending malicious data labeled as 'safe' to poison our training pipeline, the system instantly cross-references the label against a high-confidence prediction, flags the poisoning attempt, and rejects the data."
+**4. Attacker Intelligence (1:45 - 2:30)**
+* **ACTION:** Navigate to the **"Intelligence"** tab.
+* "Let's look at who is attacking us. Our Intelligence engine has already profiled these IPs. See this IP? It's been flagged as an 'Adaptive Threat Actor' because it switched from standard exploits to evasion when it realized our model was catching it."
+* *Expand a profile to show the packet feature summary and timeline.*
 
-**5. Automated Blocking (2:30 - 3:00)**
-* **ACTION:** Let `blitz` run or repeatedly send evasions until an IP is blocked.
-* "Because the system noticed repeated adversarial behavior from this specific IP, our 3-strike Blocker automatically blacklisted them. Subsequent requests simply receive a 403 Forbidden. The system has successfully defended the network, the model, and isolated the attacker. Thank you."
+**5. Honeypot & Containment (2:30 - 3:00)**
+* **ACTION:** Point to the **"Honeypot Monitor"** terminal on the right.
+* "Once an IP hits its 3rd strike, it doesn't just get blocked—it gets contained. Our Honeypot Monitor just deployed a 'Credential Harvest' lure to the attacker. They think they're stealing data, but they're actually trapped in a decoy loop while we profile their behavior. Thank you."
 
 ---
 

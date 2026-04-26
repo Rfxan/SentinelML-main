@@ -20,11 +20,14 @@ const BlockList = () => {
             <p className="text-slate-500 dark:text-slate-400 text-sm transition-colors">IPs actively contained and verified by neural network.</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {/* Decorative stats */}
+        <div className="flex items-center gap-4">
           <div className="px-4 py-2 bg-white dark:bg-[#1A1F2B] border border-slate-200 dark:border-white/10 rounded-xl shadow-lg dark:shadow-none flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
             <span className="text-xs font-bold text-slate-900 dark:text-white">{blockedIPs.length} Active Blocks</span>
+          </div>
+          <div className="px-4 py-2 bg-slate-900 text-white dark:bg-white dark:text-slate-900 rounded-xl flex items-center gap-2">
+            <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Session History</span>
+            <span className="text-sm font-black">{blockedIPs.length} IPs Blocked</span>
           </div>
         </div>
       </div>

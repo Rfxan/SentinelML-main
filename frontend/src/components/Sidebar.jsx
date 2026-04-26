@@ -10,13 +10,15 @@ import {
   Eye,
   History,
   Terminal,
-  Fingerprint
+  Fingerprint,
+  Zap
 } from 'lucide-react';
 
 
 const navItems = [
   { name: 'Dashboards', icon: LayoutDashboard },
   { name: 'Incidents', icon: ShieldAlert },
+  { name: 'Intelligence', icon: Zap },
   { name: 'Clustering', icon: Fingerprint },
   { name: 'Traffic', icon: Activity },
   { name: 'Alerts', icon: Bell },

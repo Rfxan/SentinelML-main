@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Dashboard from './components/Dashboard';
+import AttackerIntelligence from './components/AttackerIntelligence';
 import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
 import AlertHistory from './components/AlertHistory';
@@ -75,6 +76,8 @@ function MainApp() {
             <Dashboard data={globalDataStr} />
           ) : activeItem === 'Incidents' ? (
             <IncidentDashboard />
+          ) : activeItem === 'Intelligence' ? (
+            <AttackerIntelligence />
           ) : activeItem === 'Clustering' ? (
             <ClusterAnalysis />
           ) : activeItem === 'Traffic' ? (

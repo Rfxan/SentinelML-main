@@ -5,7 +5,7 @@ export const AlertContext = createContext(null);
 
 export const AlertProvider = ({ children }) => {
   // Use existing polling hook
-  const { trafficFeed, modelStats, blockedIPs, isLive, isLoading } = useTrafficPolling();
+  const { trafficFeed, modelStats, blockedIPs, attackerProfiles, honeypotLog, isLive, isLoading } = useTrafficPolling();
 
   const [alerts, setAlerts] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -164,6 +164,8 @@ export const AlertProvider = ({ children }) => {
       trafficFeed, 
       modelStats, 
       blockedIPs, 
+      attackerProfiles,
+      honeypotLog,
       isLive, 
       isLoading
     }}>

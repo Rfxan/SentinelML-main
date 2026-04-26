@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
-import { ChevronRight, ShieldCheck, ShieldAlert, Activity, Sun, Moon } from 'lucide-react';
+import { ChevronRight, ShieldCheck, ShieldAlert, Activity, Sun, Moon, Play, RefreshCw, Check } from 'lucide-react';
 import NotificationBell from './NotificationBell';
+import axios from 'axios';
+
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000';
 
 const Topbar = ({ isLive, theme, setTheme, activeItem }) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [demoState, setDemoState] = useState('idle'); // 'idle' | 'running' | 'complete'
 
   const handleAnalyze = () => {
     setIsAnalyzing(true);
@@ -11,6 +15,26 @@ const Topbar = ({ isLive, theme, setTheme, activeItem }) => {
     setTimeout(() => {
       setIsAnalyzing(false);
     }, 2000);
+  };
+
+  const handleRunDemo = async () => {
+    setDemoState('running');
+    try {
+      // Step 1: Blitz (25 events)
+      await axios.post(`${API_BASE}/simulate`, { mode: 'blitz', count: 25 });
+      
+      // Wait 3 seconds
+      await new Promise(r => setTimeout(r, 3000));
+      
+      // Step 2: Evasion (10 events)
+      await axios.post(`${API_BASE}/simulate`, { mode: 'evasion', count: 10 });
+      
+      setDemoState('complete');
+      setTimeout(() => setDemoState('idle'), 5000);
+    } catch (err) {
+      console.error("Demo failed:", err);
+      setDemoState('idle');
+    }
   };
 
   return (
@@ -60,6 +84,25 @@ const Topbar = ({ isLive, theme, setTheme, activeItem }) => {
             </>
           )}
         </div>
+
+        {/* Demo Mode Button */}
+        <button 
+          onClick={handleRunDemo}
+          disabled={demoState !== 'idle'}
+          className={`relative overflow-hidden rounded-lg px-4 py-2 font-black text-[10px] tracking-widest uppercase transition-all duration-300 flex items-center gap-2 border shadow-xl
+            ${demoState === 'idle' ? 'bg-indigo-600 text-white border-indigo-400 hover:bg-indigo-500' : 
+              demoState === 'running' ? 'bg-slate-800 text-slate-400 border-white/10 cursor-not-allowed' : 
+              'bg-emerald-600 text-white border-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.3)]'}
+          `}
+        >
+          {demoState === 'idle' ? (
+            <><Play size={14} className="fill-current" /> RUN DEMO ATTACK SEQUENCE</>
+          ) : demoState === 'running' ? (
+            <><RefreshCw size={14} className="animate-spin" /> RUNNING SEQUENCE...</>
+          ) : (
+            <><Check size={14} /> DEMO COMPLETE ✓</>
+          )}
+        </button>
 
         {/* Analyze CTA */}
         <button 
